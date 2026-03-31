@@ -69,7 +69,7 @@ const MentalHealth = () => {
         </span>
         <p className="text-xs mt-1 mb-3" style={{ color: 'hsl(var(--muted))' }}>
           {user.burnoutScore > 60 ? 'High risk — consider recovery mode' :
-            user.burnoutScore > 30 ? 'Moderate — keep monitoring' : 'Low — you're in a good place'}
+            user.burnoutScore > 30 ? 'Moderate — keep monitoring' : "Low — you're in a good place"}
         </p>
         <p className="text-xs p-2 rounded-lg" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--text-secondary))' }}>
           Factors: Mood trend (30%) · Break habits (25%) · Study timing (25%) · Session load (20%)

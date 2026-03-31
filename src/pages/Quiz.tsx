@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
-import { Timer, Zap, HelpCircle } from 'lucide-react';
+import { Zap, HelpCircle } from 'lucide-react';
 
 interface Question {
   question: string;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, CheckCircle, HelpCircle } from 'lucide-react';
+import { ChevronRight, CheckCircle } from 'lucide-react';
 
 const subjects = ['Physics', 'Chemistry', 'Mathematics'];
 const chapters: Record<string, string[]> = {
