@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Award, Flame, Target, BookOpen, Clock } from 'lucide-react';
+import { Award, Target, BookOpen, Clock } from 'lucide-react';
 
 const badges = [
   { id: 'onFire', emoji: '🔥', label: 'On Fire', desc: '5 correct in a row', earned: true },
