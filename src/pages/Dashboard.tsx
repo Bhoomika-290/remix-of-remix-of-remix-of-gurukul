@@ -250,7 +250,6 @@ const Dashboard = () => {
                         level === 1 ? 'hsl(var(--accent) / 0.25)' :
                           level === 2 ? 'hsl(var(--accent) / 0.55)' :
                             'hsl(var(--accent))',
-                      }}
                     }}
                     title={`${Math.floor(Math.random() * 90)} min studied`}
                   />
