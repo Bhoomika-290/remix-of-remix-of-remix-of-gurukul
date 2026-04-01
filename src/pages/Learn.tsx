@@ -146,7 +146,6 @@ const Learn = () => {
                   background: 'hsl(var(--surface))',
                   color: 'hsl(var(--text))',
                 }}
-                }}
               />
             </div>
             <div>
