@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { Home, BookOpen, Target, MessageCircle, Users, User, Moon } from 'lucide-react';
+import { Home, BookOpen, Target, MessageCircle, Users, User, Moon, Gamepad2 } from 'lucide-react';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import SaathiChatFAB from '@/components/SaathiChatFAB';
 import { useTheme } from '@/contexts/ThemeContext';
