@@ -224,24 +224,47 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Heatmap */}
+        {/* Heatmap - Full Width */}
         <div className="card-base">
-          <h3 className="font-display text-sm font-semibold mb-3" style={{ color: 'hsl(var(--text))' }}>Your consistency</h3>
-          <div className="heatmap-grid">
-            {heatmapData.map((level, i) => (
-              <div
-                key={i}
-                className="heatmap-cell"
-                data-level={level}
-                style={{
-                  background: level === 0 ? 'hsl(var(--surface2))' :
-                    level === 1 ? 'hsl(var(--accent) / 0.3)' :
-                      level === 2 ? 'hsl(var(--accent) / 0.6)' :
-                        'hsl(var(--accent))',
-                }}
-                title={`${Math.floor(Math.random() * 60)} min studied`}
-              />
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display text-sm font-semibold" style={{ color: 'hsl(var(--text))' }}>Your consistency</h3>
+            <span className="text-xs stat-number" style={{ color: 'hsl(var(--muted))' }}>Last 26 weeks</span>
+          </div>
+          <div className="flex gap-0.5 text-[9px] mb-1 pl-8" style={{ color: 'hsl(var(--muted))' }}>
+            {['', '', 'Mon', '', 'Wed', '', 'Fri'].map((d, i) => (
+              <span key={i} className="flex-1 text-center">{d}</span>
             ))}
+          </div>
+          <div className="overflow-x-auto">
+            <div style={{ display: 'grid', gridTemplateRows: 'repeat(7, 1fr)', gridAutoFlow: 'column', gap: '3px', width: '100%', minWidth: '100%' }}>
+              {Array.from({ length: 182 }, (_, i) => {
+                const level = heatmapData[i % heatmapData.length];
+                return (
+                  <div
+                    key={i}
+                    className="rounded-sm cursor-pointer hover:ring-1 hover:ring-offset-1 transition-all"
+                    style={{
+                      aspectRatio: '1',
+                      minWidth: '10px',
+                      background: level === 0 ? 'hsl(var(--surface2))' :
+                        level === 1 ? 'hsl(var(--accent) / 0.25)' :
+                          level === 2 ? 'hsl(var(--accent) / 0.55)' :
+                            'hsl(var(--accent))',
+                    }}
+                    title={`${Math.floor(Math.random() * 90)} min studied`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 mt-2 justify-end text-[9px]" style={{ color: 'hsl(var(--muted))' }}>
+            <span>Less</span>
+            {[0, 1, 2, 3].map(l => (
+              <div key={l} className="w-2.5 h-2.5 rounded-sm" style={{
+                background: l === 0 ? 'hsl(var(--surface2))' : `hsl(var(--accent) / ${l * 0.3 + 0.1})`,
+              }} />
+            ))}
+            <span>More</span>
           </div>
         </div>
       </div>

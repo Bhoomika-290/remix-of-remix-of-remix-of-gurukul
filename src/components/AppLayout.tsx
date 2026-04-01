@@ -1,5 +1,5 @@
 import { Link, useLocation, Outlet } from 'react-router-dom';
-import { Home, BookOpen, Target, MessageCircle, Users, User, Moon } from 'lucide-react';
+import { Home, BookOpen, Target, MessageCircle, Users, User, Moon, Gamepad2 } from 'lucide-react';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import SaathiChatFAB from '@/components/SaathiChatFAB';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -10,6 +10,7 @@ const navItems = [
   { path: '/learn', icon: BookOpen, label: 'Learn' },
   { path: '/quiz', icon: Target, label: 'Quiz' },
   { path: '/reflect', icon: MessageCircle, label: 'Reflect' },
+  { path: '/games', icon: Gamepad2, label: 'Games' },
   { path: '/social', icon: Users, label: 'Social' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
