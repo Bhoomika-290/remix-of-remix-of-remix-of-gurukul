@@ -15,6 +15,7 @@ import Reflect from "./pages/Reflect";
 import Social from "./pages/Social";
 import Profile from "./pages/Profile";
 import MentalHealth from "./pages/MentalHealth";
+import Games from "./pages/Games";
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
 
