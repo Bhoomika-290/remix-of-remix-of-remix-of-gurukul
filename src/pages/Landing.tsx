@@ -57,21 +57,50 @@ const Landing = () => {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="flex-1 max-w-md w-full"
           >
-            <div className="card-base animate-float">
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm" style={{ color: 'hsl(var(--muted))' }}>Today's Readiness</span>
-                <span className="stat-number text-2xl font-bold" style={{ color: 'hsl(var(--accent))' }}>72</span>
+            <div className="card-base animate-float space-y-5">
+              {/* Readiness Gauge */}
+              <div className="text-center">
+                <p className="text-xs font-medium mb-2" style={{ color: 'hsl(var(--muted))' }}>Today's Readiness</p>
+                <div className="relative w-36 h-[72px] mx-auto mb-1">
+                  <svg viewBox="0 0 120 60" className="w-full h-full">
+                    <path d="M 10 55 A 50 50 0 0 1 43 12" fill="none" stroke="hsl(var(--success))" strokeWidth="8" strokeLinecap="round" opacity="0.5" />
+                    <path d="M 43 12 A 50 50 0 0 1 77 12" fill="none" stroke="hsl(var(--warning))" strokeWidth="8" strokeLinecap="round" opacity="0.5" />
+                    <path d="M 77 12 A 50 50 0 0 1 110 55" fill="none" stroke="hsl(var(--danger))" strokeWidth="8" strokeLinecap="round" opacity="0.5" />
+                    <line x1="60" y1="55" x2={60 + 40 * Math.cos(Math.PI - 0.72 * Math.PI)} y2={55 - 40 * Math.sin(Math.PI - 0.72 * Math.PI)} stroke="hsl(var(--text))" strokeWidth="2" strokeLinecap="round" />
+                    <circle cx="60" cy="55" r="3" fill="hsl(var(--text))" />
+                  </svg>
+                </div>
+                <span className="stat-number text-3xl font-bold" style={{ color: 'hsl(var(--accent))' }}>72</span>
+                <p className="text-[10px] mt-0.5" style={{ color: 'hsl(var(--muted))' }}>out of 100</p>
               </div>
-              <div className="w-full h-2 rounded-full mb-4" style={{ background: 'hsl(var(--surface2))' }}>
-                <div className="h-full rounded-full transition-all" style={{ width: '72%', background: 'hsl(var(--accent))' }} />
+
+              {/* Mood row */}
+              <div>
+                <p className="text-xs text-center mb-2" style={{ color: 'hsl(var(--muted))' }}>How are you feeling?</p>
+                <div className="flex gap-3 justify-center">
+                  {['😊', '😓', '😴', '💪', '😎'].map((e, i) => (
+                    <div key={i} className={`mood-orb ${i === 3 ? 'selected' : ''}`}
+                      style={{ background: 'hsl(var(--surface2))' }}>
+                      {e}
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-3 justify-center">
-                {['😊', '😓', '😴', '💪', '😎'].map((e, i) => (
-                  <div key={i} className={`mood-orb ${i === 3 ? 'selected' : ''}`}
-                    style={{ background: 'hsl(var(--surface2))' }}>
-                    {e}
-                  </div>
-                ))}
+
+              {/* Quick stats */}
+              <div className="grid grid-cols-3 gap-3 text-center pt-2 border-t" style={{ borderColor: 'hsl(var(--border))' }}>
+                <div>
+                  <span className="stat-number text-lg font-bold" style={{ color: 'hsl(var(--accent))' }}>7</span>
+                  <p className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>🔥 Streak</p>
+                </div>
+                <div>
+                  <span className="stat-number text-lg font-bold" style={{ color: 'hsl(var(--accent))' }}>340</span>
+                  <p className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>⚡ XP</p>
+                </div>
+                <div>
+                  <span className="stat-number text-lg font-bold" style={{ color: 'hsl(var(--accent))' }}>L2</span>
+                  <p className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>🏆 Hero</p>
+                </div>
               </div>
             </div>
           </motion.div>
