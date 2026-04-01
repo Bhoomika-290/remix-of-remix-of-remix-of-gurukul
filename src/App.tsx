@@ -41,6 +41,7 @@ const App = () => (
                 <Route path="/social" element={<Social />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/mental-health" element={<MentalHealth />} />
+                <Route path="/games" element={<Games />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

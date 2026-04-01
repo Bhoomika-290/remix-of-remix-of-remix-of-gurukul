@@ -10,6 +10,7 @@ const navItems = [
   { path: '/learn', icon: BookOpen, label: 'Learn' },
   { path: '/quiz', icon: Target, label: 'Quiz' },
   { path: '/reflect', icon: MessageCircle, label: 'Reflect' },
+  { path: '/games', icon: Gamepad2, label: 'Games' },
   { path: '/social', icon: Users, label: 'Social' },
   { path: '/profile', icon: User, label: 'Profile' },
 ];
