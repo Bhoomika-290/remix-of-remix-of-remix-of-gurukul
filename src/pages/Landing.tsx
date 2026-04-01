@@ -30,7 +30,7 @@ const Landing = () => {
           >
             <div className="inline-block px-3 py-1 rounded-full text-xs font-medium mb-6 border border-border"
               style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--muted))' }}>
-              ◈ NEOFuture Hackathon · PS-102 · IEEE Maharashtra
+              ◈ AI-powered adaptive learning platform
             </div>
             <h1 className="font-display text-4xl lg:text-6xl font-bold leading-tight mb-6" style={{ color: 'hsl(var(--text))' }}>
               Study smarter.<br />
