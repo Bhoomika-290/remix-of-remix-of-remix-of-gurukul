@@ -109,7 +109,7 @@ const Landing = () => {
         {/* Social Proof */}
         <div className="mt-16 flex flex-wrap items-center justify-center gap-6 text-sm"
           style={{ color: 'hsl(var(--muted))' }}>
-          {['Built for Indian students', 'AI-powered adaptive learning', 'Mental wellbeing integrated', 'IEEE Maharashtra PS-102'].map((t, i) => (
+          {['Built for Indian students', 'AI-powered adaptive learning', 'Mental wellbeing integrated', 'Effort-based rewards'].map((t, i) => (
             <span key={i} className="flex items-center gap-2">
               <span className="w-1 h-1 rounded-full" style={{ background: 'hsl(var(--accent))' }} />
               {t}

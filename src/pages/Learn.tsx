@@ -2,11 +2,16 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, CheckCircle } from 'lucide-react';
 
-const subjects = ['Physics', 'Chemistry', 'Mathematics'];
+const subjects = ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'Computer Science', 'English', 'History', 'Economics'];
 const chapters: Record<string, string[]> = {
-  Physics: ['Mechanics', 'Thermodynamics', 'Optics', 'Modern Physics'],
-  Chemistry: ['Organic', 'Inorganic', 'Physical Chemistry'],
-  Mathematics: ['Calculus', 'Algebra', 'Coordinate Geometry'],
+  Physics: ['Mechanics', 'Thermodynamics', 'Optics', 'Modern Physics', 'Electromagnetism', 'Waves & Sound', 'Semiconductor Physics'],
+  Chemistry: ['Organic Chemistry', 'Inorganic Chemistry', 'Physical Chemistry', 'Electrochemistry', 'Chemical Bonding', 'Solutions'],
+  Mathematics: ['Calculus', 'Algebra', 'Coordinate Geometry', 'Trigonometry', 'Probability & Statistics', 'Vectors & 3D'],
+  Biology: ['Cell Biology', 'Genetics', 'Ecology', 'Human Physiology', 'Plant Biology', 'Evolution'],
+  'Computer Science': ['Data Structures', 'Algorithms', 'Python', 'Networking', 'DBMS', 'OS Concepts'],
+  English: ['Grammar', 'Comprehension', 'Essay Writing', 'Literature', 'Vocabulary'],
+  History: ['Ancient India', 'Medieval India', 'Modern India', 'World History', 'Indian Freedom Movement'],
+  Economics: ['Microeconomics', 'Macroeconomics', 'Indian Economy', 'Statistics for Economics'],
 };
 
 interface LearningStep {
