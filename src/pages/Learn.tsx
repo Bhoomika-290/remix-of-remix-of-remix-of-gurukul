@@ -159,7 +159,6 @@ const Learn = () => {
                 style={{
                   background: 'hsl(var(--surface))',
                   color: 'hsl(var(--text))',
-                  }}
                 }}
               />
             </div>
