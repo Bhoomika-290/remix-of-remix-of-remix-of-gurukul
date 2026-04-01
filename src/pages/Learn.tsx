@@ -145,7 +145,7 @@ const Learn = () => {
                 style={{
                   background: 'hsl(var(--surface))',
                   color: 'hsl(var(--text))',
-                  ringColor: 'hsl(var(--accent))',
+                }}
                 }}
               />
             </div>
