@@ -1,25 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const GRID = 3;
 const TOTAL = GRID * GRID;
 
 const tileColors = [
-  'hsl(var(--accent) / 0.3)',
-  'hsl(var(--accent) / 0.5)',
-  'hsl(var(--accent) / 0.7)',
-  'hsl(var(--accent) / 0.9)',
-  'hsl(var(--success) / 0.4)',
-  'hsl(var(--warning) / 0.4)',
-  'hsl(var(--accent) / 0.45)',
-  'hsl(var(--accent) / 0.65)',
+  'hsl(var(--accent) / 0.3)', 'hsl(var(--accent) / 0.5)', 'hsl(var(--accent) / 0.7)',
+  'hsl(var(--accent) / 0.9)', 'hsl(var(--success) / 0.4)', 'hsl(var(--warning) / 0.4)',
+  'hsl(var(--accent) / 0.45)', 'hsl(var(--accent) / 0.65)',
 ];
 
 function generatePuzzle(): number[] {
-  const solved = Array.from({ length: TOTAL }, (_, i) => i); // 0 = empty
-  const tiles = [...solved];
-  // Shuffle with valid moves
-  for (let i = 0; i < 80; i++) {
+  const tiles = Array.from({ length: TOTAL }, (_, i) => i);
+  for (let i = 0; i < 100; i++) {
     const emptyIdx = tiles.indexOf(0);
     const row = Math.floor(emptyIdx / GRID);
     const col = emptyIdx % GRID;
@@ -62,32 +55,24 @@ const ZenTiles = ({ onEnd }: { onEnd: () => void }) => {
 
       <div className="inline-grid gap-2 mx-auto" style={{ gridTemplateColumns: `repeat(${GRID}, 1fr)` }}>
         {tiles.map((tile, idx) => (
-          <motion.button
-            key={idx}
-            layout
-            onClick={() => handleTap(idx)}
-            whileTap={{ scale: 0.92 }}
+          <button key={idx} onClick={() => handleTap(idx)}
             className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl font-display text-lg font-bold flex items-center justify-center transition-all"
             style={{
-              background: tile === 0 ? 'transparent' : tileColors[tile - 1] || 'hsl(var(--accent) / 0.5)',
-              border: tile === 0 ? 'none' : '1px solid hsl(var(--border))',
-              color: 'hsl(var(--text))',
-              boxShadow: tile === 0 ? 'none' : 'var(--shadow-sm)',
+              background: tile === 0 ? 'hsl(var(--surface2))' : tileColors[tile - 1] || 'hsl(var(--accent) / 0.5)',
+              border: tile === 0 ? '2px dashed hsl(var(--border))' : '1px solid hsl(var(--border))',
+              color: tile === 0 ? 'transparent' : 'hsl(var(--text))',
               cursor: tile === 0 ? 'default' : 'pointer',
-              visibility: tile === 0 ? 'hidden' : 'visible',
-            }}
-          >
+              opacity: tile === 0 ? 0.3 : 1,
+            }}>
             {tile || ''}
-          </motion.button>
+          </button>
         ))}
       </div>
 
       {isSolved && moves > 0 && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-6">
           <span className="text-3xl block mb-2">✨</span>
-          <p className="font-display text-sm mb-3" style={{ color: 'hsl(var(--text))' }}>
-            Completed in {moves} moves. Beautiful patience.
-          </p>
+          <p className="font-display text-sm mb-3" style={{ color: 'hsl(var(--text))' }}>Completed in {moves} moves. Beautiful patience.</p>
           <button onClick={onEnd} className="btn-3d text-sm px-6 py-2">Back to studying</button>
         </motion.div>
       )}
