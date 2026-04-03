@@ -99,7 +99,7 @@ const Social = () => {
           {/* Avatars */}
           <div className="flex justify-center gap-2 mb-8">
             <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold ring-2"
-              style={{ background: 'hsl(var(--accent))', color: 'hsl(var(--primary-foreground))', ringColor: 'hsl(var(--accent))' }}>
+              style={{ background: 'hsl(var(--accent))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 0 0 2px hsl(var(--accent))' }}>
               {user.name?.[0] || 'Y'}
             </div>
             {Array.from({ length: Math.min(room.users, 6) }).map((_, j) => (
