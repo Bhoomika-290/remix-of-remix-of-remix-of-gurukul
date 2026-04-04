@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { subject, subtopic, mode } = await req.json();
+    const { subject, subtopic, mode, numQuestions, studentExplanation } = await req.json();
 
     if (!subject || !subtopic || !mode) {
       return new Response(JSON.stringify({ error: "subject, subtopic, and mode are required" }), {
@@ -43,12 +43,13 @@ Topic: ${subtopic}
 
 Make the hook question intuitive and surprising. Use Indian context examples where possible.`;
     } else if (mode === "quiz") {
+      const count = numQuestions || 5;
       systemPrompt = `You are Saathi, an AI tutor. Generate adaptive quiz questions.
-Return ONLY valid JSON array with exactly 5 questions. No markdown, no code blocks, just JSON.
+Return ONLY valid JSON array with exactly ${count} questions. No markdown, no code blocks, just JSON.
 Each question must have: question (string), options (array of 4 strings), correct (number 0-3), explanation (string), concept (string), difficulty (easy/medium/hard), hint (string, optional).
 Mix difficulties. Make explanations clear and connected to real life.`;
 
-      userPrompt = `Generate 5 quiz questions for:
+      userPrompt = `Generate exactly ${count} quiz questions for:
 Subject: ${subject}
 Topic: ${subtopic}
 
@@ -59,7 +60,7 @@ Return ONLY valid JSON with: score (number 1-10), feedback (string, 2-3 sentence
 Be encouraging but honest. Never be harsh.`;
 
       userPrompt = `Topic: ${subject} - ${subtopic}
-Student's explanation: ${(await req.clone().json()).studentExplanation || ""}
+Student's explanation: ${studentExplanation || ""}
 Evaluate how well they understand this concept.`;
     } else if (mode === "concepts") {
       systemPrompt = `You are Saathi. Generate a concept map for a topic.
