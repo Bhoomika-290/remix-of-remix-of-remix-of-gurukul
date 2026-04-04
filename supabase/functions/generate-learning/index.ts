@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { subject, subtopic, mode } = await req.json();
+    const { subject, subtopic, mode, numQuestions, studentExplanation } = await req.json();
 
     if (!subject || !subtopic || !mode) {
       return new Response(JSON.stringify({ error: "subject, subtopic, and mode are required" }), {
