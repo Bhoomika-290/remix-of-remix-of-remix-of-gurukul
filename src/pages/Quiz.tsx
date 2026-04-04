@@ -81,7 +81,7 @@ const Quiz = () => {
     if (!subject.trim() || !subtopic.trim()) { toast.error('Please enter subject and topic'); return; }
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-learning', { body: { subject, subtopic, mode: 'quiz' } });
+      const { data, error } = await supabase.functions.invoke('generate-learning', { body: { subject, subtopic, mode: 'quiz', numQuestions } });
       if (error) throw error;
       const result = data?.result;
       if (Array.isArray(result) && result.length > 0) {

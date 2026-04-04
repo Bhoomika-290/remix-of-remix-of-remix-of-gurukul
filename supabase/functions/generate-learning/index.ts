@@ -60,7 +60,7 @@ Return ONLY valid JSON with: score (number 1-10), feedback (string, 2-3 sentence
 Be encouraging but honest. Never be harsh.`;
 
       userPrompt = `Topic: ${subject} - ${subtopic}
-Student's explanation: ${(await req.clone().json()).studentExplanation || ""}
+Student's explanation: ${studentExplanation || ""}
 Evaluate how well they understand this concept.`;
     } else if (mode === "concepts") {
       systemPrompt = `You are Saathi. Generate a concept map for a topic.
