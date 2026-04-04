@@ -13,6 +13,7 @@ export default {
     extend: {
       fontFamily: {
         display: ['Fraunces', 'serif'],
+        brand: ['Playfair Display', 'serif'],
         mono: ['DM Mono', 'monospace'],
         body: ['Plus Jakarta Sans', 'sans-serif'],
       },
