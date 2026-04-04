@@ -39,6 +39,8 @@ export default {
         warning: "hsl(var(--warning))",
         danger: "hsl(var(--danger))",
         "focus-ring": "hsl(var(--focus-color))",
+        "brand-teal": "hsl(176 78% 24%)",
+        "brand-green": "hsl(130 45% 42%)",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
