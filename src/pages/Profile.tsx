@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { Award, Flame, Target, BookOpen, Clock, TrendingUp, BarChart3, Brain, Trophy, Zap } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, RadarChart, PolarGrid, PolarAngleAxis, Radar, BarChart, Bar, Cell } from 'recharts';
 
 const badges = [
@@ -18,6 +19,7 @@ const badges = [
 
 const Profile = () => {
   const { user } = useApp();
+  const { recoveryMode } = useTheme();
   const [activeTab, setActiveTab] = useState<'overview' | 'subjects' | 'quests'>('overview');
 
   // Learning pulse data (ECG-like)
@@ -181,7 +183,8 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Leaderboard */}
+          {/* Leaderboard — hidden in recovery mode */}
+          {!recoveryMode && (
           <div className="card-base">
             <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'hsl(var(--text))' }}>
               <Trophy size={16} style={{ color: 'hsl(var(--warning))' }} /> Leaderboard
@@ -210,6 +213,7 @@ const Profile = () => {
               })}
             </div>
           </div>
+          )}
         </div>
       )}
 
