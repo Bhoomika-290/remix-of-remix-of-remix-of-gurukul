@@ -20,9 +20,11 @@
     --muted: 25 4% 53%;
     --border: 36 18% 89%;
     --border-strong: 30 10% 81%;
-    --accent: 150 15% 42%;
-    --accent-hover: 150 18% 34%;
-    --accent-soft: 150 20% 92%;
+    --accent: 176 78% 24%;
+    --accent-hover: 176 72% 18%;
+    --accent-soft: 176 40% 92%;
+    --brand-teal: 176 78% 24%;
+    --brand-green: 130 45% 42%;
     --success: 138 14% 49%;
     --warning: 28 40% 59%;
     --danger: 14 42% 50%;
