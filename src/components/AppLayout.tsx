@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { Home, BookOpen, Target, Brain, Gamepad2, Users, User, Moon, ArrowLeft } from 'lucide-react';
+import { Home, BookOpen, Target, Brain, Gamepad2, Users, User, Moon, ArrowLeft, Layers } from 'lucide-react';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import SaathiChatFAB from '@/components/SaathiChatFAB';
 import { useTheme } from '@/contexts/ThemeContext';
