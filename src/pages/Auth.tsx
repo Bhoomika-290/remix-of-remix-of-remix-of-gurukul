@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
+import gurukulLogo from '@/assets/gurukul-logo.png';
 
 const floatingQuotes = [
   "You tried 3 times — that's real learning 💪",
@@ -58,8 +59,8 @@ const Auth = () => {
           className="card-base w-full max-w-md"
         >
           <div className="text-center mb-8">
-            <span className="font-display text-4xl font-bold" style={{ color: 'hsl(var(--accent))' }}>स</span>
-            <h1 className="font-display text-2xl font-bold mt-2" style={{ color: 'hsl(var(--text))' }}>MindMap</h1>
+            <img src={gurukulLogo} alt="Gurukul" className="w-14 h-14 object-contain mx-auto" />
+            <h1 className="font-brand text-2xl font-bold mt-3 bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent">Gurukul</h1>
             <p className="text-sm mt-1" style={{ color: 'hsl(var(--muted))' }}>Your study companion that understands how you feel</p>
           </div>
 

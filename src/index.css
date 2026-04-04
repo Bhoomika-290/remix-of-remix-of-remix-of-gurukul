@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,400;1,9..144,600&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,300;1,9..144,400;1,9..144,600&family=DM+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -20,9 +20,11 @@
     --muted: 25 4% 53%;
     --border: 36 18% 89%;
     --border-strong: 30 10% 81%;
-    --accent: 150 15% 42%;
-    --accent-hover: 150 18% 34%;
-    --accent-soft: 150 20% 92%;
+    --accent: 176 78% 24%;
+    --accent-hover: 176 72% 18%;
+    --accent-soft: 176 40% 92%;
+    --brand-teal: 176 78% 24%;
+    --brand-green: 130 45% 42%;
     --success: 138 14% 49%;
     --warning: 28 40% 59%;
     --danger: 14 42% 50%;
@@ -310,6 +312,10 @@
 
   .font-display {
     font-family: var(--font-fraunces);
+  }
+  .font-brand {
+    font-family: 'Playfair Display', serif;
+    letter-spacing: -0.5px;
   }
   .font-mono-num {
     font-family: var(--font-mono);

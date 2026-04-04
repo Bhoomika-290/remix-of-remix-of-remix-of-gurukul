@@ -141,8 +141,8 @@ const SaathiChatFAB = () => {
         {!open && (
           <motion.button ref={btnRef} initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
             onClick={() => setOpen(true)}
-            className="fixed bottom-24 lg:bottom-8 right-6 w-14 h-14 rounded-full flex items-center justify-center text-2xl font-display z-50 btn-3d"
-            style={{ boxShadow: 'var(--shadow-lg)' }}>
+            className="fixed bottom-24 lg:bottom-8 right-6 w-14 h-14 rounded-full flex items-center justify-center text-2xl font-display z-50"
+            style={{ background: 'linear-gradient(135deg, hsl(176 78% 24%), hsl(130 45% 42%))', color: 'white', boxShadow: 'var(--shadow-lg)' }}>
             स
           </motion.button>
         )}

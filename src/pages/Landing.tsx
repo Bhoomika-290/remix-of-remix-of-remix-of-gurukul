@@ -1,14 +1,26 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
+import gurukulLogo from '@/assets/gurukul-logo.png';
 
 const Landing = () => {
   return (
     <div className="min-h-screen" style={{ background: 'hsl(var(--bg))' }}>
       <nav className="flex items-center justify-between px-6 lg:px-12 py-5 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2">
-          <span className="font-display text-2xl font-bold" style={{ color: 'hsl(var(--accent))' }}>स</span>
-          <span className="font-display text-xl font-semibold" style={{ color: 'hsl(var(--text))' }}>Gurukul</span>
+        <div className="flex items-center gap-2.5">
+          <motion.img
+            src={gurukulLogo}
+            alt="Gurukul"
+            className="w-9 h-9 object-contain"
+            whileHover={{ scale: 1.08 }}
+            transition={{ type: 'spring', stiffness: 300 }}
+          />
+          <div>
+            <span className="font-brand text-xl font-bold tracking-tight bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent">
+              Gurukul
+            </span>
+            <p className="text-[9px] -mt-0.5 font-body" style={{ color: 'hsl(var(--muted))' }}>Mindful & Well-being</p>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <ThemeSwitcher />
@@ -26,7 +38,7 @@ const Landing = () => {
             </div>
             <h1 className="font-display text-4xl lg:text-6xl font-bold leading-tight mb-6" style={{ color: 'hsl(var(--text))' }}>
               Study smarter.<br />
-              <span style={{ color: 'hsl(var(--accent))' }}>Feel better.</span><br />
+              <span className="bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent">Feel better.</span><br />
               Grow deeper.
             </h1>
             <p className="text-lg mb-8 leading-relaxed" style={{ color: 'hsl(var(--text-secondary))' }}>
@@ -73,7 +85,7 @@ const Landing = () => {
 
         <div className="mt-16 flex flex-wrap items-center justify-center gap-6 text-sm" style={{ color: 'hsl(var(--muted))' }}>
           {['Built for Indian students', 'AI-powered adaptive learning', 'Mental wellbeing integrated', 'Effort-based rewards'].map((t, i) => (
-            <span key={i} className="flex items-center gap-2"><span className="w-1 h-1 rounded-full" style={{ background: 'hsl(var(--accent))' }} />{t}</span>
+            <span key={i} className="flex items-center gap-2"><span className="w-1 h-1 rounded-full bg-brand-teal" />{t}</span>
           ))}
         </div>
 
@@ -101,7 +113,11 @@ const Landing = () => {
       </div>
 
       <footer className="border-t border-border py-8 text-center text-sm" style={{ color: 'hsl(var(--muted))' }}>
-        <p>◈ Gurukul — Study smarter. Feel better. Grow deeper.</p>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <img src={gurukulLogo} alt="Gurukul" className="w-6 h-6 object-contain" />
+          <span className="font-brand font-bold bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent">Gurukul</span>
+        </div>
+        <p>Study smarter. Feel better. Grow deeper.</p>
         <p className="mt-1 text-xs">Built with ❤️ for Indian students · Saathi AI Companion</p>
       </footer>
     </div>

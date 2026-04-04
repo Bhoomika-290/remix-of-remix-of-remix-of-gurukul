@@ -4,6 +4,7 @@ import ThemeSwitcher from '@/components/ThemeSwitcher';
 import SaathiChatFAB from '@/components/SaathiChatFAB';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useApp } from '@/contexts/AppContext';
+import gurukulLogo from '@/assets/gurukul-logo.png';
 
 const navItems = [
   { path: '/dashboard', icon: Home, label: 'Home' },
@@ -28,7 +29,9 @@ const AppLayout = () => {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex flex-col items-center w-16 py-6 gap-6 border-r border-border fixed h-full z-40"
         style={{ background: 'hsl(var(--surface))' }}>
-        <Link to="/dashboard" className="font-display text-xl font-bold" style={{ color: 'hsl(var(--accent))' }}>स</Link>
+        <Link to="/dashboard" className="block">
+          <img src={gurukulLogo} alt="Gurukul" className="w-8 h-8 object-contain hover:scale-110 transition-transform" />
+        </Link>
         <div className="flex-1 flex flex-col items-center gap-2 mt-4">
           {navItems.map(item => {
             const active = location.pathname.startsWith(item.path);
@@ -64,8 +67,11 @@ const AppLayout = () => {
               <ArrowLeft size={18} />
             </button>
           )}
-          <Link to="/dashboard" className="font-display text-lg font-bold flex items-center gap-2" style={{ color: 'hsl(var(--accent))' }}>
-            <span className="text-xl">स</span> Gurukul
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <img src={gurukulLogo} alt="Gurukul" className="w-7 h-7 object-contain" />
+            <span className="font-brand text-lg font-bold tracking-tight bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent">
+              Gurukul
+            </span>
           </Link>
         </div>
         <div className="flex items-center gap-3">
@@ -82,7 +88,6 @@ const AppLayout = () => {
       </header>
 
       <main className="flex-1 lg:ml-16 pb-20 lg:pb-0">
-        {/* Desktop back button */}
         {canGoBack && (
           <div className="hidden lg:block px-6 pt-4">
             <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border transition-all hover:border-accent"
