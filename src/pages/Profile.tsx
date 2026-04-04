@@ -19,6 +19,7 @@ const badges = [
 
 const Profile = () => {
   const { user } = useApp();
+  const { recoveryMode } = useTheme();
   const [activeTab, setActiveTab] = useState<'overview' | 'subjects' | 'quests'>('overview');
 
   // Learning pulse data (ECG-like)
