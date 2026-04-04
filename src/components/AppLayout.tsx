@@ -1,5 +1,5 @@
-import { Link, useLocation, Outlet } from 'react-router-dom';
-import { Home, BookOpen, Target, MessageCircle, Users, User, Moon, Gamepad2, Brain } from 'lucide-react';
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { Home, BookOpen, Target, Brain, Gamepad2, Users, User, Moon, ArrowLeft } from 'lucide-react';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import SaathiChatFAB from '@/components/SaathiChatFAB';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -17,8 +17,10 @@ const navItems = [
 
 const AppLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { recoveryMode, setRecoveryMode } = useTheme();
   const { user } = useApp();
+  const canGoBack = location.pathname !== '/dashboard';
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
@@ -55,9 +57,16 @@ const AppLayout = () => {
       {/* Mobile Top Bar */}
       <header className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-border sticky top-0 z-40"
         style={{ background: 'hsl(var(--surface))' }}>
-        <Link to="/dashboard" className="font-display text-lg font-bold flex items-center gap-2" style={{ color: 'hsl(var(--accent))' }}>
-          <span className="text-xl">स</span> Saathi
-        </Link>
+        <div className="flex items-center gap-2">
+          {canGoBack && (
+            <button onClick={() => navigate(-1)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ color: 'hsl(var(--muted))' }}>
+              <ArrowLeft size={18} />
+            </button>
+          )}
+          <Link to="/dashboard" className="font-display text-lg font-bold flex items-center gap-2" style={{ color: 'hsl(var(--accent))' }}>
+            <span className="text-xl">स</span> Gurukul
+          </Link>
+        </div>
         <div className="flex items-center gap-3">
           <span className="font-mono text-sm flex items-center gap-1">
             <span className="animate-flame inline-block">🔥</span>
@@ -71,9 +80,20 @@ const AppLayout = () => {
         </div>
       </header>
 
-      <main className="flex-1 lg:ml-16 pb-20 lg:pb-0"><Outlet /></main>
+      <main className="flex-1 lg:ml-16 pb-20 lg:pb-0">
+        {/* Desktop back button */}
+        {canGoBack && (
+          <div className="hidden lg:block px-6 pt-4">
+            <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border transition-all hover:border-accent"
+              style={{ color: 'hsl(var(--muted))' }}>
+              <ArrowLeft size={14} /> Back
+            </button>
+          </div>
+        )}
+        <Outlet />
+      </main>
 
-      {/* Mobile Bottom Nav - show 5 items */}
+      {/* Mobile Bottom Nav */}
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around py-2 border-t border-border z-40"
         style={{ background: 'hsl(var(--surface))' }}>
         {navItems.slice(0, 5).map(item => {

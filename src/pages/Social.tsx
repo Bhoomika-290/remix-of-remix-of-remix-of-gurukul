@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { toast } from 'sonner';
-import { Timer, Users, Heart, ArrowLeft } from 'lucide-react';
+import { Timer, Users, ArrowLeft } from 'lucide-react';
 
 const Social = () => {
   const { user } = useApp();
@@ -10,33 +10,38 @@ const Social = () => {
   const [cheeredRooms, setCheeredRooms] = useState<number[]>([]);
   const [pomodoroTime, setPomodoroTime] = useState(25 * 60);
   const [pomodoroActive, setPomodoroActive] = useState(false);
-  const [stuckTopics, setStuckTopics] = useState<Record<number, number>>({ 0: 23, 1: 15, 2: 8 });
+  const [stuckTopics, setStuckTopics] = useState<Record<number, number>>({});
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Generate rooms based on user's subjects
   const subs = user.subjects.length > 0 ? user.subjects : ['Physics', 'Chemistry', 'Mathematics'];
+
   const roomTopics: Record<string, string[]> = {
-    Physics: ['Thermodynamics', 'Mechanics', 'Optics'],
-    Chemistry: ['Organic Chemistry', 'Inorganic', 'Physical Chemistry'],
-    Mathematics: ['Calculus', 'Algebra', 'Coordinate Geometry'],
-    Biology: ['Genetics', 'Ecology', 'Cell Biology'],
-    'Computer Science': ['Data Structures', 'Algorithms', 'OOP'],
-    English: ['Literature', 'Grammar', 'Essay Writing'],
-    History: ['Indian History', 'World History', 'Modern History'],
-    Economics: ['Microeconomics', 'Macroeconomics', 'Statistics'],
-    Geography: ['Physical Geography', 'Human Geography', 'Climatology'],
+    Physics: ['Thermodynamics', 'Mechanics', 'Optics', 'Electrostatics', 'Modern Physics'],
+    Chemistry: ['Organic Chemistry', 'Inorganic', 'Physical Chemistry', 'Chemical Bonding', 'Electrochemistry'],
+    Mathematics: ['Calculus', 'Algebra', 'Coordinate Geometry', 'Trigonometry', 'Probability'],
+    Biology: ['Genetics', 'Ecology', 'Cell Biology', 'Human Physiology', 'Plant Biology'],
+    'Computer Science': ['Data Structures', 'Algorithms', 'OOP', 'SQL & Databases', 'Web Dev'],
+    English: ['Literature', 'Grammar', 'Essay Writing', 'Poetry', 'Comprehension'],
+    History: ['Indian History', 'World History', 'Modern History', 'Ancient India', 'Medieval India'],
+    Economics: ['Microeconomics', 'Macroeconomics', 'Statistics', 'Indian Economy', 'Banking'],
+    Geography: ['Physical Geography', 'Human Geography', 'Climatology', 'Map Work', 'Resources'],
   };
 
-  const rooms = subs.slice(0, 3).map((sub, i) => {
+  // Generate more rooms — 2 per subject
+  const rooms = subs.flatMap((sub, si) => {
     const topics = roomTopics[sub] || ['General Study'];
-    return {
-      topic: `${sub} — ${topics[i % topics.length]}`,
-      users: 2 + Math.floor(Math.random() * 6),
-      stuckCount: stuckTopics[i] || 0,
-    };
+    return topics.slice(0, 3).map((topic, ti) => {
+      const id = si * 10 + ti;
+      return {
+        id,
+        topic: `${sub} — ${topic}`,
+        subject: sub,
+        users: 2 + Math.floor(Math.random() * 8),
+        stuckCount: stuckTopics[id] || Math.floor(Math.random() * 20),
+      };
+    });
   });
 
-  // Proper timer with useEffect
   useEffect(() => {
     if (pomodoroActive && pomodoroTime > 0) {
       timerRef.current = setInterval(() => {
@@ -50,21 +55,20 @@ const Social = () => {
         });
       }, 1000);
     }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [pomodoroActive]);
 
-  const handleJoin = (i: number) => {
-    setJoinedRoom(i);
+  const handleJoin = (id: number) => {
+    setJoinedRoom(id);
     setPomodoroTime(25 * 60);
     setPomodoroActive(true);
-    toast.success(`Joined ${rooms[i].topic} room! Focus timer started.`);
+    const room = rooms.find(r => r.id === id);
+    toast.success(`Joined ${room?.topic || 'room'}! Focus timer started.`);
   };
 
-  const handleCheer = (i: number) => {
-    if (cheeredRooms.includes(i)) return;
-    setCheeredRooms(prev => [...prev, i]);
+  const handleCheer = (id: number) => {
+    if (cheeredRooms.includes(id)) return;
+    setCheeredRooms(prev => [...prev, id]);
     toast.success('Cheer sent! 🤍');
   };
 
@@ -77,7 +81,7 @@ const Social = () => {
 
   // In a room
   if (joinedRoom !== null) {
-    const room = rooms[joinedRoom];
+    const room = rooms.find(r => r.id === joinedRoom) || rooms[0];
     const mins = Math.floor(pomodoroTime / 60);
     const secs = pomodoroTime % 60;
     const progress = ((25 * 60 - pomodoroTime) / (25 * 60)) * 100;
@@ -96,7 +100,6 @@ const Social = () => {
             </p>
           </div>
 
-          {/* Avatars */}
           <div className="flex justify-center gap-2 mb-8">
             <div className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold ring-2"
               style={{ background: 'hsl(var(--accent))', color: 'hsl(var(--primary-foreground))', boxShadow: '0 0 0 2px hsl(var(--accent))' }}>
@@ -110,7 +113,6 @@ const Social = () => {
             ))}
           </div>
 
-          {/* Focus Timer — big and animated */}
           <div className="text-center mb-6">
             <div className="relative w-48 h-48 mx-auto mb-4">
               <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
@@ -124,7 +126,7 @@ const Social = () => {
                   {String(mins).padStart(2, '0')}:{String(secs).padStart(2, '0')}
                 </p>
                 <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted))' }}>
-                  {pomodoroActive ? '📚 Focusing...' : pomodoroTime === 0 ? '🎉 Done!' : '⏸ Paused'}
+                  {pomodoroActive ? 'Focusing...' : pomodoroTime === 0 ? 'Done!' : 'Paused'}
                 </p>
               </div>
             </div>
@@ -147,16 +149,13 @@ const Social = () => {
           </div>
 
           <div className="p-3 rounded-xl text-center" style={{ background: 'hsl(var(--surface2))' }}>
-            <p className="text-xs" style={{ color: 'hsl(var(--muted))' }}>
-              Silent co-working mode. Everyone is focused. No chat needed — just presence. 🌿
-            </p>
+            <p className="text-xs" style={{ color: 'hsl(var(--muted))' }}>Silent co-working mode. Everyone is focused. No chat needed — just presence.</p>
           </div>
 
-          {/* Stuck indicator */}
           {room.stuckCount > 0 && (
             <div className="mt-4 p-3 rounded-xl flex items-center justify-between" style={{ background: 'hsl(var(--warning) / 0.08)' }}>
-              <span className="text-xs" style={{ color: 'hsl(var(--warning))' }}>🤝 {room.stuckCount} students stuck on concepts in this topic</span>
-              <button onClick={() => { setStuckTopics(prev => ({ ...prev, [joinedRoom]: (prev[joinedRoom] || 0) + 1 })); toast('Marked as stuck — you\'re not alone!'); }}
+              <span className="text-xs" style={{ color: 'hsl(var(--warning))' }}>{room.stuckCount} students stuck on concepts</span>
+              <button onClick={() => { setStuckTopics(prev => ({ ...prev, [room.id]: (prev[room.id] || room.stuckCount) + 1 })); toast("Marked as stuck — you're not alone!"); }}
                 className="text-xs font-medium px-3 py-1 rounded-lg" style={{ background: 'hsl(var(--warning) / 0.15)', color: 'hsl(var(--warning))' }}>
                 I'm stuck too
               </button>
@@ -167,57 +166,67 @@ const Social = () => {
     );
   }
 
+  // Group rooms by subject
+  const groupedRooms = subs.map(sub => ({
+    subject: sub,
+    rooms: rooms.filter(r => r.subject === sub),
+  }));
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
       <div>
         <h2 className="font-display text-2xl font-bold mb-1" style={{ color: 'hsl(var(--text))' }}>Study Together</h2>
         <p className="text-sm mb-6" style={{ color: 'hsl(var(--muted))' }}>
           Silent co-working rooms based on your subjects. Join to start a 25-min focus session.
         </p>
 
-        <div className="space-y-3">
-          {rooms.map((room, i) => (
-            <motion.div key={i} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }} className="card-base">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full animate-breathe" style={{ background: 'hsl(var(--success))' }} />
-                  <span className="font-display text-sm font-semibold" style={{ color: 'hsl(var(--text))' }}>{room.topic}</span>
-                </div>
-                <span className="text-xs flex items-center gap-1" style={{ color: 'hsl(var(--accent))' }}>
-                  <Users size={12} /> {room.users} online
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 mb-3">
-                {Array.from({ length: Math.min(room.users, 5) }).map((_, j) => (
-                  <div key={j} className="w-7 h-7 rounded-full flex items-center justify-center text-[10px]"
-                    style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>
-                    {String.fromCharCode(65 + j)}
+        {groupedRooms.map((group, gi) => (
+          <div key={gi} className="mb-6">
+            <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'hsl(var(--accent))' }}>
+              <span className="w-2 h-2 rounded-full" style={{ background: 'hsl(var(--accent))' }} />
+              {group.subject}
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {group.rooms.map((room) => (
+                <motion.div key={room.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  className="card-base">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-display text-xs font-semibold truncate" style={{ color: 'hsl(var(--text))' }}>{room.topic.split(' — ')[1]}</span>
+                    <span className="text-[10px] flex items-center gap-1" style={{ color: 'hsl(var(--accent))' }}>
+                      <span className="w-1.5 h-1.5 rounded-full animate-breathe" style={{ background: 'hsl(var(--success))' }} />
+                      {room.users}
+                    </span>
                   </div>
-                ))}
-                {room.users > 5 && <span className="text-xs" style={{ color: 'hsl(var(--muted))' }}>+{room.users - 5}</span>}
-              </div>
 
-              {room.stuckCount > 0 && (
-                <p className="text-[11px] mb-3 flex items-center gap-1" style={{ color: 'hsl(var(--warning))' }}>
-                  🤝 {room.stuckCount} students stuck on concepts
-                </p>
-              )}
+                  <div className="flex items-center gap-1 mb-2">
+                    {Array.from({ length: Math.min(room.users, 4) }).map((_, j) => (
+                      <div key={j} className="w-6 h-6 rounded-full flex items-center justify-center text-[9px]"
+                        style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>
+                        {String.fromCharCode(65 + j)}
+                      </div>
+                    ))}
+                    {room.users > 4 && <span className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>+{room.users - 4}</span>}
+                  </div>
 
-              <div className="flex gap-2">
-                <button onClick={() => handleJoin(i)} className="btn-3d text-xs px-4 py-2">
-                  <Timer size={12} className="inline mr-1" /> Join room
-                </button>
-                <button onClick={() => handleCheer(i)}
-                  className={`btn-3d-ghost text-xs px-3 py-2 ${cheeredRooms.includes(i) ? 'opacity-50' : ''}`}
-                  disabled={cheeredRooms.includes(i)}>
-                  {cheeredRooms.includes(i) ? 'Cheered ✓' : 'Send cheer 🤍'}
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                  {room.stuckCount > 0 && (
+                    <p className="text-[10px] mb-2" style={{ color: 'hsl(var(--warning))' }}>{room.stuckCount} stuck</p>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button onClick={() => handleJoin(room.id)} className="btn-3d text-[10px] px-3 py-1.5">
+                      <Timer size={10} className="inline mr-1" /> Join
+                    </button>
+                    <button onClick={() => handleCheer(room.id)}
+                      className={`btn-3d-ghost text-[10px] px-2 py-1.5 ${cheeredRooms.includes(room.id) ? 'opacity-50' : ''}`}
+                      disabled={cheeredRooms.includes(room.id)}>
+                      {cheeredRooms.includes(room.id) ? '✓' : '🤍'}
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Accountability */}
