@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Zap, HelpCircle, Loader2, Sparkles, AlertCircle, Wind, Shield, Swords, Heart } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,12 +19,14 @@ interface Question {
 
 const Quiz = () => {
   const { user, setUser } = useApp();
+  const { recoveryMode } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const state = location.state as { subject?: string; subtopic?: string } | null;
 
   const [subject, setSubject] = useState(state?.subject || '');
   const [subtopic, setSubtopic] = useState(state?.subtopic || '');
+  const [numQuestions, setNumQuestions] = useState(5);
   const [quizStarted, setQuizStarted] = useState(false);
 
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -50,6 +53,7 @@ const Quiz = () => {
   const [breathPhase, setBreathPhase] = useState<'idle' | 'in' | 'hold' | 'out'>('idle');
   const [weakConcepts, setWeakConcepts] = useState<string[]>([]);
   const [bossTimer, setBossTimer] = useState(30);
+  const [bossQCount, setBossQCount] = useState(0);
   const qStartTime = useRef(Date.now());
   const responseTimes = useRef<number[]>([]);
 
@@ -81,18 +85,19 @@ const Quiz = () => {
       if (error) throw error;
       const result = data?.result;
       if (Array.isArray(result) && result.length > 0) {
-        setQuestions(result);
+        setQuestions(result.slice(0, numQuestions));
         setQuizStarted(true);
         qStartTime.current = Date.now();
       } else { toast.error('Could not generate quiz. Try again.'); }
     } catch (err: any) { toast.error(err.message || 'Failed to generate quiz'); }
     finally { setLoading(false); }
-  }, [subject, subtopic]);
+  }, [subject, subtopic, numQuestions]);
 
   useEffect(() => {
     if (state?.subject && state?.subtopic && !quizStarted && questions.length === 0) fetchQuiz();
   }, [state, quizStarted, questions.length, fetchQuiz]);
 
+  // Adaptive difficulty
   useEffect(() => {
     if (correctStreak >= 3 && difficulty !== 'hard') {
       setDifficulty(prev => prev === 'easy' ? 'medium' : 'hard');
@@ -102,49 +107,33 @@ const Quiz = () => {
     }
   }, [correctStreak]);
 
+  // Brain fog after 3 wrong
   useEffect(() => {
-    if (wrongStreak >= 3 && difficulty !== 'easy') {
-      setDifficulty(prev => prev === 'hard' ? 'medium' : 'easy');
-      setEncouragement('No worries! Giving you easier questions.');
-      setTimeout(() => setEncouragement(null), 3000);
-      setWrongStreak(0);
+    if (wrongStreak >= 3 && !brainFog) {
+      setBrainFog(true);
     }
   }, [wrongStreak]);
 
+  // Break timer
   useEffect(() => {
     if (!breakActive) return;
-    if (breakTimer <= 0) {
-      setBreakActive(false);
-      setBrainFog(false);
-      setDifficulty('easy');
-      setEncouragement('Welcome back 🌿 Switched to easier questions.');
-      setTimeout(() => setEncouragement(null), 4000);
-      return;
-    }
+    if (breakTimer <= 0) { setBreakActive(false); setBrainFog(false); setDifficulty('easy'); setEncouragement('Welcome back 🌿 Switched to easier questions.'); setTimeout(() => setEncouragement(null), 4000); return; }
     const t = setTimeout(() => setBreakTimer(prev => prev - 1), 1000);
     return () => clearTimeout(t);
   }, [breakActive, breakTimer]);
 
   useEffect(() => {
     if (!breakActive) { setBreathPhase('idle'); return; }
-    const cycle = () => {
-      setBreathPhase('in');
-      setTimeout(() => setBreathPhase('hold'), 4000);
-      setTimeout(() => setBreathPhase('out'), 8000);
-      setTimeout(() => setBreathPhase('in'), 12000);
-    };
+    const cycle = () => { setBreathPhase('in'); setTimeout(() => setBreathPhase('hold'), 4000); setTimeout(() => setBreathPhase('out'), 8000); setTimeout(() => setBreathPhase('in'), 12000); };
     cycle();
     const interval = setInterval(cycle, 12000);
     return () => clearInterval(interval);
   }, [breakActive]);
 
+  // Boss timer
   useEffect(() => {
     if (!showBoss || bossDefeated) return;
-    if (bossTimer <= 0) {
-      setShowBoss(false); setBossDefeated(false); setBossHP(99); setBossTimer(30);
-      toast.error("Time's up! Boss escaped. Keep going! 💪");
-      return;
-    }
+    if (bossTimer <= 0) { setShowBoss(false); setBossDefeated(false); setBossHP(99); setBossTimer(30); setBossQCount(0); toast.error("Time's up! Boss escaped. Keep going! 💪"); return; }
     const t = setTimeout(() => setBossTimer(prev => prev - 1), 1000);
     return () => clearTimeout(t);
   }, [showBoss, bossTimer, bossDefeated]);
@@ -157,7 +146,6 @@ const Quiz = () => {
     responseTimes.current.push(rt);
     const avg = responseTimes.current.length > 2 ? responseTimes.current.reduce((a, b) => a + b, 0) / responseTimes.current.length : rt;
     const ratio = rt / avg;
-
     if (responseTimes.current.length > 3 && ratio > 2.2) setBrainFog(true);
 
     setSelected(index);
@@ -177,8 +165,9 @@ const Quiz = () => {
       if (q.concept && !weakConcepts.includes(q.concept)) setWeakConcepts(prev => [...prev, q.concept]);
     }
 
-    if ((currentQ + 1) % 5 === 0 && correctStreak >= 2 && isCorrect) {
-      setTimeout(() => { setShowBoss(true); setBossHP(99); setBossTimer(30); setBossDefeated(false); }, 1500);
+    // Boss trigger: every 5 questions with streak >= 3
+    if ((currentQ + 1) % 5 === 0 && correctStreak >= 2 && isCorrect && !recoveryMode) {
+      setTimeout(() => { setShowBoss(true); setBossHP(99); setBossTimer(30); setBossDefeated(false); setBossQCount(0); }, 1500);
     }
   };
 
@@ -187,7 +176,7 @@ const Quiz = () => {
     setAnswered(true);
     setSelected(-1);
     if (q.concept && !weakConcepts.includes(q.concept)) setWeakConcepts(prev => [...prev, q.concept]);
-    setEncouragement(`🤝 ${stuckCount + 1} student(s) got stuck on this today. You're not alone.`);
+    setEncouragement(`🤝 ${Math.floor(Math.random() * 40) + 10} students also got stuck on this. You're not alone.`);
     setTimeout(() => setEncouragement(null), 4000);
   };
 
@@ -203,6 +192,7 @@ const Quiz = () => {
 
   const dismissBrainFog = (action: string) => {
     setBrainFog(false);
+    setWrongStreak(0);
     if (action === 'game') navigate('/games');
     if (action === 'easier') { setDifficulty('easy'); setEncouragement('Switched to easier questions.'); setTimeout(() => setEncouragement(null), 3000); }
     if (action === 'breathe') startBreak();
@@ -212,11 +202,12 @@ const Quiz = () => {
     const newHP = bossHP - 33;
     setBossHP(newHP);
     setBossShake(true);
+    setBossQCount(prev => prev + 1);
     setTimeout(() => setBossShake(false), 500);
     if (newHP <= 0) { setBossDefeated(true); setSessionXP(prev => prev + 80); setUser(prev => ({ ...prev, xp: prev.xp + 80 })); }
   };
 
-  // Topic selection
+  // Topic selection with question count
   if (!quizStarted) {
     return (
       <div className="max-w-lg mx-auto px-4 py-12">
@@ -230,19 +221,31 @@ const Quiz = () => {
             <div>
               <label className="text-xs font-medium mb-1.5 block" style={{ color: 'hsl(var(--text-secondary))' }}>Subject</label>
               <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g., Physics, Biology..."
-                className="w-full px-4 py-3 rounded-xl border border-border text-sm outline-none"
-                style={{ background: 'hsl(var(--surface))', color: 'hsl(var(--text))' }} />
+                className="w-full px-4 py-3 rounded-xl border border-border text-sm outline-none" style={{ background: 'hsl(var(--surface))', color: 'hsl(var(--text))' }} />
             </div>
             <div>
               <label className="text-xs font-medium mb-1.5 block" style={{ color: 'hsl(var(--text-secondary))' }}>Topic</label>
               <input type="text" value={subtopic} onChange={e => setSubtopic(e.target.value)} placeholder="e.g., Thermodynamics..."
-                className="w-full px-4 py-3 rounded-xl border border-border text-sm outline-none"
-                style={{ background: 'hsl(var(--surface))', color: 'hsl(var(--text))' }} />
+                className="w-full px-4 py-3 rounded-xl border border-border text-sm outline-none" style={{ background: 'hsl(var(--surface))', color: 'hsl(var(--text))' }} />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block" style={{ color: 'hsl(var(--text-secondary))' }}>Number of Questions</label>
+              <div className="flex gap-2">
+                {[3, 5, 10].map(n => (
+                  <button key={n} onClick={() => setNumQuestions(n)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all border"
+                    style={{
+                      background: numQuestions === n ? 'hsl(var(--accent))' : 'hsl(var(--surface2))',
+                      color: numQuestions === n ? 'hsl(var(--primary-foreground))' : 'hsl(var(--text))',
+                      borderColor: numQuestions === n ? 'hsl(var(--accent))' : 'hsl(var(--border))',
+                    }}>{n} Qs</button>
+                ))}
+              </div>
             </div>
           </div>
 
           <div className="mb-6">
-            <p className="text-xs font-medium mb-2" style={{ color: 'hsl(var(--muted))' }}>Based on your subjects ({user.subjects.join(', ') || 'General'}):</p>
+            <p className="text-xs font-medium mb-2" style={{ color: 'hsl(var(--muted))' }}>Quick picks:</p>
             <div className="flex flex-wrap gap-2">
               {getQuickPicks().map((qp, i) => (
                 <button key={i} onClick={() => { setSubject(qp.s); setSubtopic(qp.t); }}
@@ -258,7 +261,7 @@ const Quiz = () => {
 
           <button onClick={fetchQuiz} disabled={!subject.trim() || !subtopic.trim() || loading}
             className="btn-3d w-full py-3.5 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-40">
-            {loading ? <><Loader2 size={16} className="animate-spin" /> Generating quiz...</> : <><Sparkles size={16} /> Start AI Quiz</>}
+            {loading ? <><Loader2 size={16} className="animate-spin" /> Generating quiz...</> : <><Sparkles size={16} /> Start Quiz ({numQuestions} questions)</>}
           </button>
         </motion.div>
       </div>
@@ -269,46 +272,40 @@ const Quiz = () => {
   if (breakActive) {
     const circleScale = breathPhase === 'in' ? 1.4 : breathPhase === 'hold' ? 1.4 : 1;
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-6" style={{ background: 'hsl(var(--bg))' }}>
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-6" style={{ background: 'linear-gradient(180deg, hsl(180 30% 8%), hsl(220 30% 12%))' }}>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center max-w-sm">
-          <Wind size={40} className="mx-auto mb-4" style={{ color: 'hsl(var(--accent))' }} />
-          <h2 className="font-display text-xl font-bold mb-2" style={{ color: 'hsl(var(--text))' }}>Breathe with Saathi</h2>
-          <p className="text-sm mb-8" style={{ color: 'hsl(var(--muted))' }}>You'll resume with easier questions after this.</p>
+          <Wind size={40} className="mx-auto mb-4 text-white/60" />
+          <h2 className="font-display text-xl font-bold mb-2 text-white">Breathe with Saathi</h2>
+          <p className="text-sm mb-8 text-white/50">You'll resume with easier questions after this.</p>
           <div className="relative flex items-center justify-center mb-8">
             <motion.div animate={{ scale: circleScale }} transition={{ duration: 4, ease: 'easeInOut' }}
               className="w-32 h-32 rounded-full flex items-center justify-center"
-              style={{ background: 'hsl(var(--accent) / 0.15)', border: '2px solid hsl(var(--accent) / 0.3)' }}>
-              <motion.div animate={{ scale: circleScale * 0.7 }} transition={{ duration: 4, ease: 'easeInOut' }}
-                className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'hsl(var(--accent) / 0.25)' }}>
-                <span className="font-display text-sm font-semibold" style={{ color: 'hsl(var(--accent))' }}>
-                  {breathPhase === 'in' ? 'In' : breathPhase === 'hold' ? 'Hold' : breathPhase === 'out' ? 'Out' : '...'}
-                </span>
-              </motion.div>
+              style={{ background: 'rgba(100,200,180,0.15)', border: '2px solid rgba(100,200,180,0.3)', boxShadow: '0 0 40px rgba(100,200,180,0.1)' }}>
+              <span className="font-display text-lg font-semibold text-white/80">
+                {breathPhase === 'in' ? 'In' : breathPhase === 'hold' ? 'Hold' : breathPhase === 'out' ? 'Out' : '...'}
+              </span>
             </motion.div>
           </div>
-          <p className="stat-number text-3xl font-bold mb-2" style={{ color: 'hsl(var(--accent))' }}>{breakTimer}s</p>
-          <p className="text-xs" style={{ color: 'hsl(var(--muted))' }}>Break ends automatically</p>
-          <button onClick={() => { setBreakActive(false); setBrainFog(false); setDifficulty('easy'); }}
-            className="mt-6 text-xs font-medium" style={{ color: 'hsl(var(--muted))' }}>Skip & resume →</button>
+          <p className="stat-number text-3xl font-bold mb-2 text-white/80">{breakTimer}s</p>
+          <button onClick={() => { setBreakActive(false); setBrainFog(false); setDifficulty('easy'); }} className="mt-6 text-xs text-white/40 hover:text-white/60">Skip & resume →</button>
         </motion.div>
       </div>
     );
   }
 
-  // Brain Fog — simplified
+  // Brain Fog card
   if (brainFog) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ background: 'hsl(var(--bg))' }}>
-        <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} className="card-base max-w-md w-full p-8">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ background: 'linear-gradient(180deg, hsl(180 20% 10%), hsl(200 20% 14%))' }}>
+        <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md w-full p-8 rounded-2xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
           <div className="text-center mb-6">
-            <Shield size={36} className="mx-auto mb-3" style={{ color: 'hsl(var(--accent))' }} />
-            <h3 className="font-display text-xl font-bold mb-2" style={{ color: 'hsl(var(--text))' }}>Saathi noticed</h3>
-            <p className="text-sm leading-relaxed" style={{ color: 'hsl(var(--text-secondary))' }}>
-              Your brain might need a moment.<br />This happens — every option is valid.
-            </p>
+            <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ background: 'rgba(100,200,180,0.15)' }}>
+              <Shield size={28} className="text-white/60" />
+            </div>
+            <h3 className="font-display text-xl font-bold mb-2 text-white">Saathi noticed</h3>
+            <p className="text-sm text-white/50">Your brain might need a moment.<br/>Every option is valid. No guilt.</p>
           </div>
 
-          <p className="text-xs font-medium mb-3" style={{ color: 'hsl(var(--muted))' }}>What do you want to do?</p>
           <div className="space-y-2.5">
             {[
               { icon: <Wind size={16} />, label: 'Breathe with me — 30s', action: 'breathe' },
@@ -317,16 +314,13 @@ const Quiz = () => {
               { icon: <Zap size={16} />, label: "I'm fine, keep going →", action: 'continue' },
             ].map(opt => (
               <button key={opt.action} onClick={() => dismissBrainFog(opt.action)}
-                className="answer-tile w-full text-left flex items-center gap-3">
-                <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>
-                  {opt.icon}
-                </span>
-                <p className="text-sm font-medium" style={{ color: 'hsl(var(--text))' }}>{opt.label}</p>
+                className="w-full text-left flex items-center gap-3 p-3.5 rounded-xl transition-all hover:scale-[1.02]"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <span className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-white/60" style={{ background: 'rgba(255,255,255,0.08)' }}>{opt.icon}</span>
+                <p className="text-sm font-medium text-white/80">{opt.label}</p>
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-center mt-4" style={{ color: 'hsl(var(--muted))' }}>Every option is valid. No guilt on any choice.</p>
         </motion.div>
       </div>
     );
@@ -342,12 +336,12 @@ const Quiz = () => {
           <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative z-10 text-center max-w-sm">
             <motion.span className="text-7xl block mb-4" animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.2, 1] }} transition={{ duration: 0.6 }}>🎉</motion.span>
             <h2 className="font-display text-3xl font-bold mb-2 text-white">Victory!</h2>
-            <p className="text-sm mb-6" style={{ color: 'rgba(255,255,255,0.6)' }}>Boss defeated! Bonus XP earned.</p>
+            <p className="text-sm mb-6 text-white/50">Boss defeated! +80 XP bonus earned.</p>
             <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl mb-6" style={{ background: 'rgba(255,215,0,0.15)', border: '1px solid rgba(255,215,0,0.3)' }}>
               <Zap size={20} className="text-yellow-400" /><span className="stat-number text-2xl font-bold text-yellow-400">+80 XP</span>
             </motion.div><br />
-            <button onClick={() => { setShowBoss(false); setBossDefeated(false); setBossHP(99); setBossTimer(30); }} className="btn-3d px-8 py-3 font-semibold mt-2">Continue Quiz →</button>
+            <button onClick={() => { setShowBoss(false); setBossDefeated(false); setBossHP(99); setBossTimer(30); setBossQCount(0); }} className="btn-3d px-8 py-3 font-semibold mt-2">Continue Quiz →</button>
           </motion.div>
         ) : (
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative z-10 text-center max-w-md w-full px-6">
@@ -366,12 +360,12 @@ const Quiz = () => {
                 </div>
               ))}
             </div>
-            <p className="stat-number text-sm mb-6" style={{ color: 'rgba(255,255,255,0.5)' }}>HP: {Math.max(0, bossHP)}/99</p>
+            <p className="stat-number text-sm mb-6 text-white/40">HP: {Math.max(0, bossHP)}/99 · Hit {bossQCount}/3</p>
             <button onClick={handleBossAttack} className="relative px-10 py-4 rounded-xl font-display text-lg font-bold text-white"
               style={{ background: 'linear-gradient(135deg, hsl(0 60% 45%), hsl(0 70% 35%))', boxShadow: '0 4px 0 hsl(0 50% 25%), 0 8px 20px rgba(0,0,0,0.4)' }}>
               <Swords size={20} className="inline mr-2" /> Attack! (-33 HP)
             </button>
-            <button onClick={() => { setShowBoss(false); setBossHP(99); setBossTimer(30); }} className="block mx-auto mt-4 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>Skip boss</button>
+            <button onClick={() => { setShowBoss(false); setBossHP(99); setBossTimer(30); setBossQCount(0); }} className="block mx-auto mt-4 text-xs text-white/30">Skip boss</button>
           </motion.div>
         )}
       </div>
@@ -395,7 +389,7 @@ const Quiz = () => {
           </div>
           {weakConcepts.length > 0 && (
             <div className="p-3 rounded-xl mb-4 text-left" style={{ background: 'hsl(var(--surface2))' }}>
-              <p className="text-xs font-medium mb-2" style={{ color: 'hsl(var(--warning))' }}>Weak areas detected:</p>
+              <p className="text-xs font-medium mb-2" style={{ color: 'hsl(var(--warning))' }}>Weak areas:</p>
               <div className="flex flex-wrap gap-1.5">
                 {weakConcepts.map((c, i) => (
                   <span key={i} className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'hsl(var(--warning) / 0.15)', color: 'hsl(var(--warning))' }}>{c}</span>
@@ -403,15 +397,10 @@ const Quiz = () => {
               </div>
             </div>
           )}
-          <div className="p-3 rounded-xl mb-4" style={{ background: 'hsl(var(--accent-soft))' }}>
-            <p className="font-display text-sm italic" style={{ color: 'hsl(var(--text))' }}>
-              {accuracy >= 80 ? "Excellent! Your understanding is getting stronger 🔥" : accuracy >= 50 ? "Good effort! Building solid foundations 💪" : "You showed up and tried — that's what matters 🤍"}
-            </p>
-          </div>
           <div className="flex gap-3 justify-center">
+            <button onClick={() => navigate('/revision')} className="btn-3d px-6 py-2.5 text-sm font-semibold">Create flashcards →</button>
             <button onClick={() => { setQuizStarted(false); setQuizDone(false); setCurrentQ(0); setSessionXP(0); setTotalCorrect(0); setCorrectStreak(0); setWrongStreak(0); setStuckCount(0); setQuestions([]); setWeakConcepts([]); }}
-              className="btn-3d px-6 py-2.5 text-sm font-semibold">New quiz</button>
-            <button onClick={() => navigate('/learn')} className="btn-3d-ghost px-6 py-2.5 text-sm">Learn more</button>
+              className="btn-3d-ghost px-6 py-2.5 text-sm">New quiz</button>
           </div>
         </motion.div>
       </div>
@@ -422,19 +411,20 @@ const Quiz = () => {
 
   return (
     <div className="max-w-3xl mx-auto px-4 lg:px-8 py-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div className="flex items-center gap-3">
-          <button onClick={() => setQuizStarted(false)} className="text-xs" style={{ color: 'hsl(var(--muted))' }}>← {subtopic}</button>
+          <button onClick={() => setQuizStarted(false)} className="text-xs" style={{ color: 'hsl(var(--muted))' }}>← Back</button>
           <span className="px-2 py-0.5 rounded text-xs font-medium" style={{
             background: difficulty === 'hard' ? 'hsl(var(--danger) / 0.15)' : difficulty === 'medium' ? 'hsl(var(--warning) / 0.15)' : 'hsl(var(--success) / 0.15)',
             color: difficulty === 'hard' ? 'hsl(var(--danger))' : difficulty === 'medium' ? 'hsl(var(--warning))' : 'hsl(var(--success))',
-          }}>Level: {difficulty}</span>
+          }}>{difficulty}</span>
         </div>
-        <div className="flex items-center gap-4">
-          <button onClick={startBreak} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-border hover:border-accent transition-all"
-            style={{ color: 'hsl(var(--muted))' }}><Wind size={12} /> 30s break</button>
+        <div className="flex items-center gap-3">
+          <button onClick={startBreak} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-border hover:border-accent transition-all" style={{ color: 'hsl(var(--muted))' }}>
+            <Wind size={12} /> 30s break
+          </button>
           <span className="text-sm" style={{ color: 'hsl(var(--muted))' }}>Q{currentQ + 1}/{questions.length}</span>
-          <span className="stat-number text-sm flex items-center gap-1" style={{ color: 'hsl(var(--accent))' }}><Zap size={14} /> +{sessionXP} XP</span>
+          <span className="stat-number text-sm flex items-center gap-1" style={{ color: 'hsl(var(--accent))' }}><Zap size={14} /> +{sessionXP}</span>
           {correctStreak >= 2 && <span className="text-sm animate-flame">🔥 {correctStreak}</span>}
         </div>
       </div>
@@ -459,9 +449,7 @@ const Quiz = () => {
             <p className="text-xs mb-2" style={{ color: 'hsl(var(--muted))' }}>{q.concept}</p>
             <h3 className="text-base font-medium mb-1" style={{ color: 'hsl(var(--text))' }}>{q.question}</h3>
             {q.hint && !showHint && !answered && (
-              <button onClick={() => setShowHint(true)} className="flex items-center gap-1 text-xs mt-2" style={{ color: 'hsl(var(--accent))' }}>
-                <HelpCircle size={12} /> Hint available
-              </button>
+              <button onClick={() => setShowHint(true)} className="flex items-center gap-1 text-xs mt-2" style={{ color: 'hsl(var(--accent))' }}><HelpCircle size={12} /> Hint</button>
             )}
             {showHint && <p className="text-xs mt-2 p-2 rounded-lg" style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--text-secondary))' }}>💡 {q.hint}</p>}
           </div>
@@ -480,9 +468,7 @@ const Quiz = () => {
                     animation: isCorrect ? 'correctBounce3D 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)' : isWrong ? 'wrongShake3D 0.4s ease' : undefined,
                   }}>
                   <span className="w-6 h-6 rounded-full border flex items-center justify-center text-xs font-mono"
-                    style={{ borderColor: isCorrect ? 'hsl(var(--success))' : isWrong ? 'hsl(var(--danger))' : 'hsl(var(--border))' }}>
-                    {String.fromCharCode(65 + i)}
-                  </span>
+                    style={{ borderColor: isCorrect ? 'hsl(var(--success))' : isWrong ? 'hsl(var(--danger))' : 'hsl(var(--border))' }}>{String.fromCharCode(65 + i)}</span>
                   {opt}
                 </button>
               );
@@ -491,28 +477,16 @@ const Quiz = () => {
 
           {!answered && (
             <div className="flex items-center justify-between mt-4">
-              <button onClick={handleStuck} className="flex items-center gap-2 text-xs" style={{ color: 'hsl(var(--muted))' }}>
-                <AlertCircle size={14} /> I'm stuck on this one
-              </button>
-              {stuckCount > 0 && (
-                <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'hsl(var(--warning) / 0.1)', color: 'hsl(var(--warning))' }}>
-                  🤝 {stuckCount} stuck today
-                </span>
-              )}
+              <button onClick={handleStuck} className="flex items-center gap-2 text-xs" style={{ color: 'hsl(var(--muted))' }}><AlertCircle size={14} /> I'm stuck</button>
+              {stuckCount > 0 && <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'hsl(var(--warning) / 0.1)', color: 'hsl(var(--warning))' }}>🤝 {stuckCount} stuck today</span>}
             </div>
           )}
 
           {answered && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-base mt-4">
-              {selected === -1 && (
-                <p className="font-display text-sm mb-2" style={{ color: 'hsl(var(--warning))' }}>
-                  The correct answer was: <strong>{q.options[q.correct]}</strong>
-                </p>
-              )}
+              {selected === -1 && <p className="font-display text-sm mb-2" style={{ color: 'hsl(var(--warning))' }}>Correct answer: <strong>{q.options[q.correct]}</strong></p>}
               <p className="font-display text-sm" style={{ color: 'hsl(var(--text))' }}>{q.explanation}</p>
-              <button onClick={nextQuestion} className="btn-3d text-sm mt-3 px-6 py-2">
-                {currentQ < questions.length - 1 ? 'Next question →' : 'Finish quiz →'}
-              </button>
+              <button onClick={nextQuestion} className="btn-3d text-sm mt-3 px-6 py-2">{currentQ < questions.length - 1 ? 'Next →' : 'Finish →'}</button>
             </motion.div>
           )}
         </motion.div>
