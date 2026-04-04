@@ -335,6 +335,7 @@ const Dashboard = () => {
           <p className="text-xs" style={{ color: 'hsl(var(--muted))' }}>day streak</p>
         </div>
 
+        {!recoveryMode && (
         <div className="card-base">
           <h4 className="font-display text-sm font-semibold mb-3" style={{ color: 'hsl(var(--text))' }}>Leaderboard</h4>
           {[
@@ -352,6 +353,7 @@ const Dashboard = () => {
             </div>
           ))}
         </div>
+        )}
       </div>
     </div>
   );

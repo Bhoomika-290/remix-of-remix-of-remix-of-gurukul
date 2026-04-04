@@ -183,7 +183,8 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Leaderboard */}
+          {/* Leaderboard — hidden in recovery mode */}
+          {!recoveryMode && (
           <div className="card-base">
             <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'hsl(var(--text))' }}>
               <Trophy size={16} style={{ color: 'hsl(var(--warning))' }} /> Leaderboard
@@ -212,6 +213,7 @@ const Profile = () => {
               })}
             </div>
           </div>
+          )}
         </div>
       )}
 

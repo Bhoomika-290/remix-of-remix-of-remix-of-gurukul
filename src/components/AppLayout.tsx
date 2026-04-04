@@ -9,6 +9,7 @@ const navItems = [
   { path: '/dashboard', icon: Home, label: 'Home' },
   { path: '/learn', icon: BookOpen, label: 'Learn' },
   { path: '/quiz', icon: Target, label: 'Quiz' },
+  { path: '/revision', icon: Layers, label: 'Revise' },
   { path: '/mental-health', icon: Brain, label: 'Wellness' },
   { path: '/games', icon: Gamepad2, label: 'Games' },
   { path: '/social', icon: Users, label: 'Social' },
