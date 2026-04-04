@@ -43,12 +43,13 @@ Topic: ${subtopic}
 
 Make the hook question intuitive and surprising. Use Indian context examples where possible.`;
     } else if (mode === "quiz") {
+      const count = numQuestions || 5;
       systemPrompt = `You are Saathi, an AI tutor. Generate adaptive quiz questions.
-Return ONLY valid JSON array with exactly 5 questions. No markdown, no code blocks, just JSON.
+Return ONLY valid JSON array with exactly ${count} questions. No markdown, no code blocks, just JSON.
 Each question must have: question (string), options (array of 4 strings), correct (number 0-3), explanation (string), concept (string), difficulty (easy/medium/hard), hint (string, optional).
 Mix difficulties. Make explanations clear and connected to real life.`;
 
-      userPrompt = `Generate 5 quiz questions for:
+      userPrompt = `Generate exactly ${count} quiz questions for:
 Subject: ${subject}
 Topic: ${subtopic}
 
