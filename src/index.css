@@ -164,10 +164,14 @@
     --sidebar-ring: var(--accent);
   }
 
-  /* Recovery mode overlays */
+  /* Recovery mode — soft lavender/grey, removes pressure feel */
   [data-recovery="true"] {
-    --accent: 210 16% 60%;
-    --accent-soft: 210 18% 90%;
+    --accent: 250 20% 70%;
+    --accent-hover: 250 22% 78%;
+    --accent-soft: 250 25% 93%;
+    --warning: 250 12% 65%;
+    --danger: 250 10% 60%;
+    transition: all 2s ease;
   }
 }
 
