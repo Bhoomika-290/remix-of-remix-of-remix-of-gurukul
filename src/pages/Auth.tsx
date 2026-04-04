@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
+import gurukulLogo from '@/assets/gurukul-logo.png';
 
 const floatingQuotes = [
   "You tried 3 times — that's real learning 💪",
