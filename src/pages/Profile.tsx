@@ -239,30 +239,31 @@ const Profile = () => {
       cells.push(
         <motion.div
           key={d}
-          whileHover={{ scale: 1.15 }}
+          whileHover={{ scale: 1.2 }}
           onClick={() => setSelectedDay(selectedDay === d ? null : d)}
           onMouseEnter={() => setHoveredDay(d)}
           onMouseLeave={() => setHoveredDay(null)}
-          className="relative aspect-square rounded-md cursor-pointer transition-all flex items-center justify-center"
+          className="relative rounded cursor-pointer transition-all flex items-center justify-center"
           style={{
+            width: calendarView === 'week' ? 40 : calendarView === '3month' ? 14 : 20,
+            height: calendarView === 'week' ? 40 : calendarView === '3month' ? 14 : 20,
             background: ml.color,
             opacity: mood === 0 ? 0.4 : 0.85,
-            boxShadow: isSelected ? `0 0 0 2px hsl(var(--accent)), 0 2px 8px ${ml.color}40` : isToday(d) ? '0 0 0 2px hsl(var(--accent))' : '0 1px 3px rgba(0,0,0,0.08)',
+            boxShadow: isSelected ? `0 0 0 2px hsl(var(--accent))` : isToday(d) ? '0 0 0 1.5px hsl(var(--accent))' : 'none',
           }}
         >
-          <span className="text-[9px] font-medium absolute top-0.5 left-1" style={{ color: mood > 0 ? 'rgba(255,255,255,0.85)' : 'hsl(var(--muted))' }}>{d}</span>
+          {calendarView !== '3month' && (
+            <span className="text-[7px] font-medium absolute top-0 left-0.5" style={{ color: mood > 0 ? 'rgba(255,255,255,0.8)' : 'hsl(var(--muted))' }}>{d}</span>
+          )}
           {calendarView === 'week' && mood > 0 && (
             <span className="text-sm">{ml.emoji}</span>
           )}
-          {/* Tooltip on hover */}
-          {isHovered && mood > 0 && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none"
-              style={{ minWidth: 140 }}>
-              <div className="rounded-lg p-2 text-[10px] shadow-lg" style={{ background: 'hsl(var(--surface))', border: '1px solid hsl(var(--border))' }}>
+          {isHovered && mood > 0 && calendarView !== '3month' && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50 pointer-events-none" style={{ minWidth: 120 }}>
+              <div className="rounded-lg p-1.5 text-[9px] shadow-lg" style={{ background: 'hsl(var(--surface))', border: '1px solid hsl(var(--border))' }}>
                 <p className="font-medium" style={{ color: 'hsl(var(--text))' }}>{monthNames[calendarMonth]} {d}</p>
                 <p style={{ color: ml.color }}>{ml.emoji} {ml.label}</p>
                 {entry?.note && <p className="mt-0.5" style={{ color: 'hsl(var(--muted))' }}>{entry.note}</p>}
-                {entry?.exercises?.length ? <p className="mt-0.5" style={{ color: 'hsl(var(--muted))' }}>📋 {entry.exercises.join(', ')}</p> : null}
               </div>
             </div>
           )}
@@ -729,14 +730,14 @@ const Profile = () => {
               </div>
 
               {/* Day labels */}
-              <div className="grid grid-cols-7 gap-1 mb-1">
+              <div className="grid grid-cols-7 gap-0.5 mb-1">
                 {['M','T','W','T','F','S','S'].map((d, i) => (
-                  <div key={i} className="text-center text-[9px] font-medium" style={{ color: 'hsl(var(--muted))' }}>{d}</div>
+                  <div key={i} className="text-center text-[8px] font-medium" style={{ color: 'hsl(var(--muted))', width: calendarView === 'week' ? 40 : calendarView === '3month' ? 14 : 20 }}>{d}</div>
                 ))}
               </div>
 
               {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-1" style={{ maxHeight: calendarView === '3month' ? 180 : 'auto' }}>
+              <div className="flex flex-wrap gap-0.5" style={{ maxHeight: calendarView === '3month' ? 120 : 'auto' }}>
                 {renderCalendarGrid()}
               </div>
 
