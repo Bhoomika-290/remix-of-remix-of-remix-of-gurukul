@@ -370,11 +370,18 @@ const MentalHealth = () => {
           </h2>
           <p className="text-sm mt-1" style={{ color: 'hsl(var(--muted))' }}>Your emotional state is a learning variable, not a separate problem.</p>
         </div>
-        <button onClick={() => setShowSOS(true)}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all hover:scale-105"
-          style={{ borderColor: 'hsl(var(--danger))', color: 'hsl(var(--danger))', background: 'hsl(var(--danger) / 0.08)' }}>
-          <Phone size={14} /> SOS Help
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => navigate('/journal')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all hover:scale-105"
+            style={{ borderColor: 'hsl(var(--accent))', color: 'hsl(var(--accent))', background: 'hsl(var(--accent) / 0.08)' }}>
+            <Pencil size={14} /> Journal
+          </button>
+          <button onClick={() => setShowSOS(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-all hover:scale-105"
+            style={{ borderColor: 'hsl(var(--danger))', color: 'hsl(var(--danger))', background: 'hsl(var(--danger) / 0.08)' }}>
+            <Phone size={14} /> SOS Help
+          </button>
+        </div>
       </div>
 
       {/* SOS Modal */}
