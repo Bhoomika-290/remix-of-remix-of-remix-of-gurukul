@@ -31,7 +31,7 @@ const AppLayout = () => {
       <aside className="hidden lg:flex flex-col items-center w-16 py-6 gap-6 border-r border-border fixed h-full z-40"
         style={{ background: 'hsl(var(--surface))' }}>
         <Link to="/dashboard" className="block">
-          <img src={gurukulLogo} alt="Gurukul" className="w-8 h-8 object-contain hover:scale-110 transition-transform" />
+          <img src={gurukulLogo} alt="Gurukul" className="w-9 h-9 object-contain hover:scale-110 transition-transform" style={{ mixBlendMode: 'multiply' }} />
         </Link>
         <div className="flex-1 flex flex-col items-center gap-2 mt-4">
           {navItems.map(item => {
@@ -69,10 +69,12 @@ const AppLayout = () => {
             </button>
           )}
           <Link to="/dashboard" className="flex items-center gap-2">
-            <img src={gurukulLogo} alt="Gurukul" className="w-7 h-7 object-contain" />
-            <span className="font-brand text-lg font-bold tracking-tight bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent">
-              Gurukul
-            </span>
+            <img src={gurukulLogo} alt="Gurukul" className="h-8 w-auto object-contain" style={{ mixBlendMode: 'multiply' }} />
+            <div className="flex flex-col">
+              <span className="font-brand text-lg font-bold tracking-tight bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent leading-tight">
+                Gurukul
+              </span>
+            </div>
           </Link>
         </div>
         <div className="flex items-center gap-3">
