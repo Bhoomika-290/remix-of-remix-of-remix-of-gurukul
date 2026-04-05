@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      journal_entries: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          mood: string | null
+          prompt_used: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          mood?: string | null
+          prompt_used?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          mood?: string | null
+          prompt_used?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       materials: {
         Row: {
           created_at: string | null

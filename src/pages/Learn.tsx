@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Loader2, Sparkles, ArrowRight, BookOpen } from 'lucide-react';
+import { CheckCircle, Loader2, Sparkles, ArrowRight, BookOpen, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -23,6 +23,8 @@ interface LearnHistory {
   timestamp: number;
 }
 
+const TIMEOUT_MS = 30000;
+
 const Learn = () => {
   const { user, setUser } = useApp();
   const navigate = useNavigate();
@@ -38,14 +40,14 @@ const Learn = () => {
   const [teachbackText, setTeachbackText] = useState('');
   const [showExplanation, setShowExplanation] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [teachbackEval, setTeachbackEval] = useState<{ feedback: string; passed: boolean } | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  // Learning history
   const [history, setHistory] = useState<LearnHistory[]>(() => {
-    return JSON.parse(localStorage.getItem('saathi-learn-history') || '[]');
+    try { return JSON.parse(localStorage.getItem('saathi-learn-history') || '[]'); } catch { return []; }
   });
 
-  // Subject-specific subtopics based on user stream
   const getQuickPicks = () => {
     const picks: { s: string; t: string }[] = [];
     const subjectTopics: Record<string, string[]> = {
@@ -59,7 +61,6 @@ const Learn = () => {
       Economics: ['Supply and Demand', 'GDP & National Income', 'Money & Banking', 'Inflation', 'Indian Economy'],
       Geography: ['Monsoons', 'Rivers of India', 'Map Reading', 'Climatology', 'Human Geography'],
     };
-
     const subs = user.subjects.length > 0 ? user.subjects : ['Physics', 'Chemistry', 'Mathematics'];
     subs.forEach(sub => {
       const topics = subjectTopics[sub] || subjectTopics['Physics'];
@@ -75,31 +76,59 @@ const Learn = () => {
     localStorage.setItem('saathi-learn-history', JSON.stringify(updated));
   };
 
+  const fetchWithTimeout = async (body: any): Promise<any> => {
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-learning', { body });
+      if (error) throw new Error(error.message);
+      return data;
+    } finally {
+      clearTimeout(timeout);
+      abortRef.current = null;
+    }
+  };
+
   const fetchLearningContent = useCallback(async () => {
     if (!subject.trim() || !subtopic.trim()) {
       toast.error('Please enter both subject and topic');
       return;
     }
     setLoading(true);
+    setError(null);
     try {
-      const [learnRes, conceptsRes] = await Promise.all([
-        supabase.functions.invoke('generate-learning', { body: { subject, subtopic, mode: 'learn' } }),
-        supabase.functions.invoke('generate-learning', { body: { subject, subtopic, mode: 'concepts' } }),
+      const [learnData, conceptsData] = await Promise.all([
+        fetchWithTimeout({ subject, subtopic, mode: 'learn' }),
+        fetchWithTimeout({ subject, subtopic, mode: 'concepts' }),
       ]);
-      if (learnRes.error) throw new Error(learnRes.error.message);
-      if (conceptsRes.error) throw new Error(conceptsRes.error.message);
-      const learnData = learnRes.data?.result;
-      const conceptsData = conceptsRes.data?.result;
-      if (Array.isArray(learnData) && learnData.length > 0) {
-        setSteps(learnData);
+
+      const learnResult = learnData?.result;
+      const conceptsResult = conceptsData?.result;
+
+      if (Array.isArray(learnResult) && learnResult.length > 0) {
+        // Validate each step has required fields
+        const validSteps = learnResult.map((s: any, i: number) => ({
+          type: s.type || ['hook', 'fillblank', 'choice', 'teachback', 'summary'][i] || 'choice',
+          instruction: s.instruction || 'Think about this...',
+          content: s.content || s.question || 'Question not available',
+          options: Array.isArray(s.options) ? s.options : undefined,
+          correctIndex: typeof s.correctIndex === 'number' ? s.correctIndex : 0,
+          explanation: s.explanation || '',
+        }));
+        setSteps(validSteps);
         setStarted(true);
         saveHistory(subject, subtopic, 0, false);
       } else {
-        toast.error('Could not generate learning content. Try a different topic.');
+        setError('Could not generate learning content. Please try a different topic or try again.');
       }
-      if (Array.isArray(conceptsData)) setConcepts(conceptsData);
+      if (Array.isArray(conceptsResult)) setConcepts(conceptsResult);
     } catch (err: any) {
-      toast.error(err.message || 'Failed to generate content');
+      if (err.name === 'AbortError') {
+        setError('Request timed out. The AI is taking too long — please try again.');
+      } else {
+        setError(err.message || 'Failed to generate content. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -117,13 +146,12 @@ const Learn = () => {
     setAnswered(true);
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-learning', {
-        body: { subject, subtopic, mode: 'teachback-evaluate', studentExplanation: teachbackText },
-      });
-      if (error) throw error;
+      const data = await fetchWithTimeout({ subject, subtopic, mode: 'teachback-evaluate', studentExplanation: teachbackText });
       const result = data?.result;
       if (result && typeof result === 'object') {
         setTeachbackEval({ feedback: result.feedback || 'Good effort!', passed: result.passed ?? true });
+      } else {
+        setTeachbackEval({ feedback: 'Great thinking! Keep building on this understanding.', passed: true });
       }
     } catch {
       setTeachbackEval({ feedback: 'Great thinking! Keep building on this understanding.', passed: true });
@@ -152,7 +180,20 @@ const Learn = () => {
     navigate('/quiz', { state: { subject, subtopic } });
   };
 
-  // Incomplete topics from history
+  const resetLesson = () => {
+    setStarted(false);
+    setCurrentStep(0);
+    setSteps([]);
+    setConcepts([]);
+    setSelectedAnswer(null);
+    setAnswered(false);
+    setShowExplanation(false);
+    setTeachbackText('');
+    setTeachbackEval(null);
+    setError(null);
+    if (abortRef.current) abortRef.current.abort();
+  };
+
   const incompleteLessons = history.filter(h => !h.completed);
 
   // Topic selection screen
@@ -165,7 +206,16 @@ const Learn = () => {
             Enter any subject and topic — Saathi AI will create an interactive lesson just for you.
           </p>
 
-          {/* Resume incomplete lessons */}
+          {error && (
+            <div className="mb-4 p-3 rounded-xl flex items-start gap-2" style={{ background: 'hsl(var(--danger) / 0.1)', border: '1px solid hsl(var(--danger) / 0.3)' }}>
+              <AlertTriangle size={16} className="shrink-0 mt-0.5" style={{ color: 'hsl(var(--danger))' }} />
+              <div>
+                <p className="text-sm" style={{ color: 'hsl(var(--danger))' }}>{error}</p>
+                <button onClick={() => { setError(null); fetchLearningContent(); }} className="text-xs font-medium mt-1 underline" style={{ color: 'hsl(var(--accent))' }}>Try again</button>
+              </div>
+            </div>
+          )}
+
           {incompleteLessons.length > 0 && (
             <div className="mb-6">
               <p className="text-xs font-medium mb-2 flex items-center gap-1" style={{ color: 'hsl(var(--accent))' }}>
@@ -234,12 +284,20 @@ const Learn = () => {
 
   // Learning flow
   const step = steps[currentStep];
-  if (!step) return null;
+  if (!step) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-12 text-center">
+        <AlertTriangle size={32} className="mx-auto mb-3" style={{ color: 'hsl(var(--warning))' }} />
+        <p className="text-sm mb-4" style={{ color: 'hsl(var(--text))' }}>Something went wrong loading this step.</p>
+        <button onClick={resetLesson} className="btn-3d text-sm px-6 py-2.5">← Back to topic selection</button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 lg:px-8 py-6">
       <div className="flex items-center gap-2 mb-6 text-sm flex-wrap">
-        <button onClick={() => { setStarted(false); setCurrentStep(0); setSteps([]); }}
+        <button onClick={resetLesson}
           className="text-xs font-medium px-3 py-1 rounded-lg border border-border" style={{ color: 'hsl(var(--muted))' }}>← Change topic</button>
         <span className="px-3 py-1 rounded-lg text-xs font-medium" style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>{subject}</span>
         <ArrowRight size={12} style={{ color: 'hsl(var(--muted))' }} />
@@ -319,7 +377,7 @@ const Learn = () => {
                   </div>
                   <div className="flex gap-3">
                     <button onClick={goToQuiz} className="btn-3d text-sm px-6 py-2.5">Take adaptive quiz →</button>
-                    <button onClick={() => { setStarted(false); setCurrentStep(0); setSteps([]); }} className="btn-3d-ghost text-sm px-4 py-2.5">Learn another topic</button>
+                    <button onClick={resetLesson} className="btn-3d-ghost text-sm px-4 py-2.5">Learn another topic</button>
                   </div>
                 </div>
               )}
@@ -341,6 +399,18 @@ const Learn = () => {
                   )}
                   <button onClick={nextStep} className="btn-3d text-sm mt-3 px-6 py-2">Continue →</button>
                 </motion.div>
+              )}
+
+              {/* Auto-advance for steps without options (non-teachback, non-summary) that need manual next */}
+              {!step.options && step.type !== 'teachback' && step.type !== 'summary' && (
+                <div className="mt-4">
+                  {step.explanation && (
+                    <div className="p-4 rounded-xl mb-3" style={{ background: 'hsl(var(--accent-soft))' }}>
+                      <p className="font-display text-sm" style={{ color: 'hsl(var(--text))' }}>{step.explanation}</p>
+                    </div>
+                  )}
+                  <button onClick={nextStep} className="btn-3d text-sm px-6 py-2">Continue →</button>
+                </div>
               )}
             </motion.div>
           </AnimatePresence>

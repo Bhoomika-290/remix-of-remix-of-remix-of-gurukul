@@ -18,6 +18,7 @@ import MentalHealth from "./pages/MentalHealth";
 import Games from "./pages/Games";
 import Revision from "./pages/Revision";
 import KnowledgeVault from "./pages/KnowledgeVault";
+import Journal from "./pages/Journal";
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
 
@@ -46,6 +47,7 @@ const App = () => (
                 <Route path="/games" element={<Games />} />
                 <Route path="/revision" element={<Revision />} />
                 <Route path="/knowledge-vault" element={<KnowledgeVault />} />
+                <Route path="/journal" element={<Journal />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
