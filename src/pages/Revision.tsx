@@ -9,10 +9,10 @@ interface Flashcard {
   id: string;
   front: string;
   back: string;
-  rating: number; // 0=new, 1=again, 2=hard, 3=good, 4=easy
+  rating: number;
   nextReview: number;
   reviewCount: number;
-  interval: number; // days
+  interval: number;
 }
 
 interface Deck {
@@ -38,6 +38,7 @@ const Revision = () => {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiTopic, setAiTopic] = useState('');
   const [aiSubject, setAiSubject] = useState('');
+  const [aiCount, setAiCount] = useState(10);
   const [addingCard, setAddingCard] = useState(false);
   const [newFront, setNewFront] = useState('');
   const [newBack, setNewBack] = useState('');
@@ -76,30 +77,31 @@ const Revision = () => {
     setAiGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-learning', {
-        body: { subject: aiSubject, subtopic: aiTopic, mode: 'concepts' },
+        body: { subject: aiSubject, subtopic: aiTopic, mode: 'flashcards', numQuestions: aiCount },
       });
       if (error) throw error;
-      const concepts = data?.result;
-      if (Array.isArray(concepts) && concepts.length > 0) {
-        const cards: Flashcard[] = concepts.map((c: string, i: number) => ({
-          id: `ai-${Date.now()}-${i}`, front: `What is ${c}?`, back: `Key concept in ${aiSubject}: ${c}. Review your notes for detailed explanation.`,
+      const result = data?.result;
+      if (Array.isArray(result) && result.length > 0) {
+        const cards: Flashcard[] = result.map((item: any, i: number) => ({
+          id: `ai-${Date.now()}-${i}`,
+          front: item.front || item.question || `Concept ${i + 1}`,
+          back: item.back || item.answer || 'Review your notes for this concept.',
           rating: 0, nextReview: 0, reviewCount: 0, interval: 0,
         }));
         const d: Deck = { id: Date.now().toString(), name: `${aiSubject} — ${aiTopic}`, subject: aiSubject, cards, lastStudied: 0 };
         saveDecks([...decks, d]);
         setAiTopic(''); setAiSubject('');
-        toast.success(`Created deck with ${cards.length} cards!`);
-      } else { toast.error('Could not generate cards. Try a different topic.'); }
+        toast.success(`Created deck with ${cards.length} flashcards!`);
+      } else { toast.error('Could not generate flashcards. Try a different topic.'); }
     } catch (err: any) { toast.error(err.message || 'Failed to generate'); }
     finally { setAiGenerating(false); }
-  }, [aiSubject, aiTopic, decks]);
+  }, [aiSubject, aiTopic, aiCount, decks]);
 
-  // SM-2 inspired rating
   const rateCard = (rating: 1 | 2 | 3 | 4) => {
     if (!deck) return;
     const card = dueCards[currentCard];
     if (!card) return;
-    const intervals = { 1: 1, 2: 10, 3: 1440, 4: 5760 }; // minutes
+    const intervals = { 1: 1, 2: 10, 3: 1440, 4: 5760 };
     const nextReview = Date.now() + intervals[rating] * 60000;
     const updated = decks.map(d => d.id === deck.id ? {
       ...d, lastStudied: Date.now(),
@@ -111,7 +113,7 @@ const Revision = () => {
     else { setStudyMode(false); setCurrentCard(0); toast.success('Session complete! 🌿'); }
   };
 
-  // Study mode full-screen
+  // Study mode
   if (studyMode && deck && dueCards.length > 0) {
     const card = dueCards[currentCard];
     if (!card) { setStudyMode(false); return null; }
@@ -137,7 +139,6 @@ const Revision = () => {
         <div onClick={() => setFlipped(!flipped)} className="w-full max-w-md cursor-pointer" style={{ perspective: '1000px' }}>
           <motion.div animate={{ rotateY: flipped ? 180 : 0 }} transition={{ duration: 0.5, type: 'spring' }}
             className="relative w-full min-h-[250px] rounded-2xl" style={{ transformStyle: 'preserve-3d' }}>
-            {/* Front */}
             <div className="absolute inset-0 flex items-center justify-center p-8 rounded-2xl"
               style={{ backfaceVisibility: 'hidden', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div className="text-center">
@@ -146,7 +147,6 @@ const Revision = () => {
                 <p className="text-xs text-white/30 mt-6">Tap to flip</p>
               </div>
             </div>
-            {/* Back */}
             <div className="absolute inset-0 flex items-center justify-center p-8 rounded-2xl"
               style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: 'rgba(100,200,180,0.08)', border: '1px solid rgba(100,200,180,0.15)' }}>
               <div className="text-center">
@@ -178,7 +178,7 @@ const Revision = () => {
     );
   }
 
-  // Deck detail view
+  // Deck detail
   if (activeDeck && deck) {
     const mastered = deck.cards.filter(c => c.rating >= 3).length;
     const learning = deck.cards.filter(c => c.rating > 0 && c.rating < 3).length;
@@ -257,7 +257,6 @@ const Revision = () => {
         <p className="text-sm mt-1" style={{ color: 'hsl(var(--muted))' }}>Flashcards with spaced repetition for long-term memory.</p>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="card-base text-center py-3">
           <p className="stat-number text-xl font-bold" style={{ color: 'hsl(var(--accent))' }}>{totalDue}</p>
@@ -276,14 +275,26 @@ const Revision = () => {
       {/* AI Generate */}
       <div className="card-base">
         <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2" style={{ color: 'hsl(var(--text))' }}>
-          <Sparkles size={16} style={{ color: 'hsl(var(--accent))' }} /> AI-Generated Deck
+          <Sparkles size={16} style={{ color: 'hsl(var(--accent))' }} /> AI-Generated Flashcards
         </h3>
         <div className="flex gap-2 mb-3">
           <input value={aiSubject} onChange={e => setAiSubject(e.target.value)} placeholder="Subject" className="flex-1 px-3 py-2 rounded-lg border border-border text-xs outline-none" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--text))' }} />
           <input value={aiTopic} onChange={e => setAiTopic(e.target.value)} placeholder="Topic" className="flex-1 px-3 py-2 rounded-lg border border-border text-xs outline-none" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--text))' }} />
         </div>
+        <div className="flex gap-2 mb-3">
+          <span className="text-xs self-center" style={{ color: 'hsl(var(--muted))' }}>Cards:</span>
+          {[5, 10, 15, 20].map(n => (
+            <button key={n} onClick={() => setAiCount(n)}
+              className="px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all"
+              style={{
+                background: aiCount === n ? 'hsl(var(--accent-soft))' : 'transparent',
+                borderColor: aiCount === n ? 'hsl(var(--accent))' : 'hsl(var(--border))',
+                color: aiCount === n ? 'hsl(var(--accent))' : 'hsl(var(--muted))',
+              }}>{n}</button>
+          ))}
+        </div>
         <button onClick={generateAICards} disabled={aiGenerating || !aiSubject.trim() || !aiTopic.trim()} className="btn-3d text-xs px-4 py-2 w-full flex items-center justify-center gap-2 disabled:opacity-40">
-          {aiGenerating ? <><Loader2 size={14} className="animate-spin" /> Generating...</> : <><Sparkles size={14} /> Generate flashcards</>}
+          {aiGenerating ? <><Loader2 size={14} className="animate-spin" /> Generating flashcards...</> : <><Sparkles size={14} /> Generate {aiCount} flashcards</>}
         </button>
       </div>
 
@@ -318,24 +329,22 @@ const Revision = () => {
               const pct = d.cards.length > 0 ? Math.round((mastered / d.cards.length) * 100) : 0;
               return (
                 <motion.div key={d.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  className="card-base cursor-pointer hover:scale-[1.02] transition-transform group"
-                  onClick={() => setActiveDeck(d.id)}>
+                  className="card-base hover:border-accent transition-all cursor-pointer group" onClick={() => setActiveDeck(d.id)}>
                   <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <p className="text-xs font-medium" style={{ color: 'hsl(var(--accent))' }}>{d.subject}</p>
-                      <h4 className="font-display text-sm font-semibold" style={{ color: 'hsl(var(--text))' }}>{d.name}</h4>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: 'hsl(var(--text))' }}>{d.name}</p>
+                      <p className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>{d.subject} · {d.cards.length} cards</p>
                     </div>
-                    <button onClick={e => { e.stopPropagation(); deleteDeck(d.id); }} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded" style={{ color: 'hsl(var(--danger))' }}><Trash2 size={14} /></button>
+                    <button onClick={e => { e.stopPropagation(); deleteDeck(d.id); }} className="opacity-0 group-hover:opacity-100 transition-opacity p-1" style={{ color: 'hsl(var(--danger))' }}>
+                      <Trash2 size={14} />
+                    </button>
                   </div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'hsl(var(--surface2))' }}>
-                      <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct > 60 ? 'hsl(var(--success))' : pct > 30 ? 'hsl(var(--accent))' : 'hsl(var(--warning))' }} />
-                    </div>
-                    <span className="text-xs stat-number" style={{ color: 'hsl(var(--accent))' }}>{pct}%</span>
+                  <div className="flex items-center gap-3 text-[10px]">
+                    <span style={{ color: 'hsl(var(--accent))' }}>{due} due</span>
+                    <span style={{ color: 'hsl(var(--success))' }}>{pct}% mastered</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs" style={{ color: 'hsl(var(--muted))' }}>
-                    <span>{d.cards.length} cards · {due} due</span>
-                    <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'hsl(var(--accent))' }} />
+                  <div className="h-1 rounded-full mt-2 overflow-hidden" style={{ background: 'hsl(var(--surface2))' }}>
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'hsl(var(--success))' }} />
                   </div>
                 </motion.div>
               );
