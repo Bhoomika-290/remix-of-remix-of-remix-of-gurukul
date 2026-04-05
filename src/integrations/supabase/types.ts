@@ -14,7 +14,176 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      materials: {
+        Row: {
+          created_at: string | null
+          duration: string | null
+          file_size: string | null
+          id: string
+          sub_topic_id: string | null
+          thumbnail_url: string | null
+          title: string
+          type: string
+          url: string
+          year: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration?: string | null
+          file_size?: string | null
+          id?: string
+          sub_topic_id?: string | null
+          thumbnail_url?: string | null
+          title: string
+          type: string
+          url: string
+          year?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          duration?: string | null
+          file_size?: string | null
+          id?: string
+          sub_topic_id?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          type?: string
+          url?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materials_sub_topic_id_fkey"
+            columns: ["sub_topic_id"]
+            isOneToOne: false
+            referencedRelation: "sub_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      streams: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      sub_topics: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          topic_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          topic_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          topic_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_topics_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subjects: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          stream_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          stream_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          stream_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subjects_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topics: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          subject_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          subject_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          subject_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topics_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
