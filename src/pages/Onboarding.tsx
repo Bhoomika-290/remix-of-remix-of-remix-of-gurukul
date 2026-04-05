@@ -17,6 +17,7 @@ const steps = [
   },
   {
     title: 'Pick your subjects',
+    subtitle: 'Select from below or type your own',
     type: 'multi',
     options: [
       'Physics', 'Chemistry', 'Mathematics', 'Biology',
@@ -55,8 +56,17 @@ const Onboarding = () => {
   const [subjects, setSubjects] = useState<string[]>([]);
   const [studyTime, setStudyTime] = useState('');
   const [feeling, setFeeling] = useState('');
+  const [customSubject, setCustomSubject] = useState('');
   const navigate = useNavigate();
   const { setUser, user } = useApp();
+
+  const addCustomSubject = () => {
+    const trimmed = customSubject.trim();
+    if (trimmed && !subjects.includes(trimmed)) {
+      setSubjects(prev => [...prev, trimmed]);
+      setCustomSubject('');
+    }
+  };
 
   const handleSelect = (value: string) => {
     if (step === 0) setExamType(value);
