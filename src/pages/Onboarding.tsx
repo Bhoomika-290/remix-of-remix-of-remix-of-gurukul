@@ -155,6 +155,25 @@ const Onboarding = () => {
               })}
             </div>
 
+            {/* Custom subject input for step 1 (subjects) */}
+            {step === 1 && (
+              <div className="flex gap-2 mb-8">
+                <input
+                  type="text"
+                  value={customSubject}
+                  onChange={e => setCustomSubject(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addCustomSubject()}
+                  placeholder="Type a custom subject..."
+                  className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none transition-all focus:ring-2"
+                  style={{ background: 'hsl(var(--surface))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--text))' }}
+                />
+                <button onClick={addCustomSubject} disabled={!customSubject.trim()}
+                  className="btn-3d px-4 py-2.5 text-sm font-medium disabled:opacity-40">
+                  Add
+                </button>
+              </div>
+            )}
+
             <div className="flex gap-3">
               {step > 0 && (
                 <button onClick={() => setStep(step - 1)} className="btn-3d-ghost px-6 py-3 text-sm font-medium">
