@@ -18,6 +18,7 @@ import MentalHealth from "./pages/MentalHealth";
 import Games from "./pages/Games";
 import Revision from "./pages/Revision";
 import KnowledgeVault from "./pages/KnowledgeVault";
+import Journal from "./pages/Journal";
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
 
