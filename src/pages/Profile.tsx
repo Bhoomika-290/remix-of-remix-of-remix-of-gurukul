@@ -226,7 +226,7 @@ const Profile = () => {
     const cells = [];
     // Empty cells for first week offset
     for (let i = 0; i < firstDayOfWeek; i++) {
-      cells.push(<div key={`empty-${i}`} />);
+      cells.push(<div key={`empty-${i}`} style={{ width: calendarView === 'week' ? 40 : calendarView === '3month' ? 14 : 20, height: calendarView === 'week' ? 40 : calendarView === '3month' ? 14 : 20 }} />);
     }
     for (let d = 1; d <= daysInMonth; d++) {
       const key = `${calendarYear}-${calendarMonth}-${d}`;
