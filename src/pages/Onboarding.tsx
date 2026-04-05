@@ -17,6 +17,7 @@ const steps = [
   },
   {
     title: 'Pick your subjects',
+    subtitle: 'Select from below or type your own',
     type: 'multi',
     options: [
       'Physics', 'Chemistry', 'Mathematics', 'Biology',
@@ -55,8 +56,17 @@ const Onboarding = () => {
   const [subjects, setSubjects] = useState<string[]>([]);
   const [studyTime, setStudyTime] = useState('');
   const [feeling, setFeeling] = useState('');
+  const [customSubject, setCustomSubject] = useState('');
   const navigate = useNavigate();
   const { setUser, user } = useApp();
+
+  const addCustomSubject = () => {
+    const trimmed = customSubject.trim();
+    if (trimmed && !subjects.includes(trimmed)) {
+      setSubjects(prev => [...prev, trimmed]);
+      setCustomSubject('');
+    }
+  };
 
   const handleSelect = (value: string) => {
     if (step === 0) setExamType(value);
@@ -144,6 +154,25 @@ const Onboarding = () => {
                 );
               })}
             </div>
+
+            {/* Custom subject input for step 1 (subjects) */}
+            {step === 1 && (
+              <div className="flex gap-2 mb-8">
+                <input
+                  type="text"
+                  value={customSubject}
+                  onChange={e => setCustomSubject(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addCustomSubject()}
+                  placeholder="Type a custom subject..."
+                  className="flex-1 px-4 py-2.5 rounded-xl border text-sm outline-none transition-all focus:ring-2"
+                  style={{ background: 'hsl(var(--surface))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--text))' }}
+                />
+                <button onClick={addCustomSubject} disabled={!customSubject.trim()}
+                  className="btn-3d px-4 py-2.5 text-sm font-medium disabled:opacity-40">
+                  Add
+                </button>
+              </div>
+            )}
 
             <div className="flex gap-3">
               {step > 0 && (

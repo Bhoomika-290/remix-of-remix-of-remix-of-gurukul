@@ -11,15 +11,16 @@ const Landing = () => {
           <motion.img
             src={gurukulLogo}
             alt="Gurukul"
-            className="w-9 h-9 object-contain"
+            className="h-10 w-auto object-contain"
+            style={{ mixBlendMode: 'multiply' }}
             whileHover={{ scale: 1.08 }}
             transition={{ type: 'spring', stiffness: 300 }}
           />
-          <div>
-            <span className="font-brand text-xl font-bold tracking-tight bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent">
+          <div className="flex flex-col">
+            <span className="font-brand text-2xl font-bold tracking-tight bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent leading-tight">
               Gurukul
             </span>
-            <p className="text-[9px] -mt-0.5 font-body" style={{ color: 'hsl(var(--muted))' }}>Mindful & Well-being</p>
+            <p className="text-[10px] font-body leading-tight" style={{ color: 'hsl(var(--muted))', letterSpacing: '0.5px' }}>Mindful & Well-being</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
