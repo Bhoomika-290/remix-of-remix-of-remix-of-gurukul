@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, BookOpen, FileText, Video, ClipboardList, ChevronRight, Home, Download, Eye, Play, Filter, ArrowLeft, Loader2, Globe } from 'lucide-react';
+import { Search, BookOpen, FileText, Video, ClipboardList, ChevronRight, Home, Download, Play, Filter, Loader2, Globe, Upload, X, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { toast } from 'sonner';
@@ -11,7 +11,7 @@ interface Stream { id: string; name: string; icon: string; description: string; 
 interface Subject { id: string; name: string; stream_id: string; icon: string; description: string; }
 interface Topic { id: string; name: string; subject_id: string; description: string; }
 interface SubTopic { id: string; name: string; topic_id: string; description: string; }
-interface Material { id: string; title: string; type: string; url: string; sub_topic_id: string; year: number | null; file_size: string | null; duration: string | null; }
+interface Material { id: string; title: string; type: string; url: string; sub_topic_id: string; year: number | null; file_size: string | null; duration: string | null; created_at: string | null; }
 
 const typeIcons: Record<string, any> = { pdf: FileText, video: Video, pyq: ClipboardList };
 const typeLabels: Record<string, string> = { pdf: 'PDF Notes', video: 'Video Lectures', pyq: 'PYQs' };
@@ -25,6 +25,7 @@ const KnowledgeVault = () => {
   const [topics, setTopics] = useState<Topic[]>([]);
   const [subTopics, setSubTopics] = useState<SubTopic[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [allMaterials, setAllMaterials] = useState<Material[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [selectedSubTopic, setSelectedSubTopic] = useState<SubTopic | null>(null);
@@ -36,28 +37,37 @@ const KnowledgeVault = () => {
   const [showExplore, setShowExplore] = useState(false);
   const [selectedStreamId, setSelectedStreamId] = useState<string | null>(null);
   const [yearFilter, setYearFilter] = useState<number | null>(null);
+  const [materialCounts, setMaterialCounts] = useState<Record<string, { pdf: number; video: number; pyq: number }>>({});
+  const [recentMaterials, setRecentMaterials] = useState<(Material & { subjectName?: string })[]>([]);
+  const [showUpload, setShowUpload] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadType, setUploadType] = useState<'pdf' | 'video' | 'pyq'>('pdf');
+  const [uploadUrl, setUploadUrl] = useState('');
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Map user examType to stream
   const userStreamName = useMemo(() => {
     const map: Record<string, string> = {
       jee: 'Science PCM', neet: 'Science PCB', boards: 'Science PCM',
-      engineering: 'Engineering', other: 'Science PCM',
+      engineering: 'Engineering', commerce: 'Commerce', arts: 'Arts', other: 'Science PCM',
     };
     return map[user.examType] || 'Science PCM';
   }, [user.examType]);
 
-  // Load streams + subjects
+  // Load everything
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const [{ data: st }, { data: subs }] = await Promise.all([
+      const [{ data: st }, { data: subs }, { data: allMats }] = await Promise.all([
         supabase.from('streams').select('*').order('name'),
         supabase.from('subjects').select('*').order('name'),
+        supabase.from('materials').select('*').order('created_at', { ascending: false }),
       ]);
       setStreams((st as Stream[]) || []);
-      const allSubs = (subs as Subject[]) || [];
-      setSubjects(allSubs);
-      // Auto-select user's stream
+      setSubjects((subs as Subject[]) || []);
+      setAllMaterials((allMats as Material[]) || []);
+
       const userStream = (st as Stream[])?.find(s => s.name === userStreamName);
       if (userStream) setSelectedStreamId(userStream.id);
       setLoading(false);
@@ -65,10 +75,53 @@ const KnowledgeVault = () => {
     load();
   }, [userStreamName]);
 
+  // Compute material counts per subject and recent materials
+  useEffect(() => {
+    if (!subjects.length || !allMaterials.length) return;
+    const loadCounts = async () => {
+      // Get all sub_topics -> topics -> subjects mapping
+      const { data: allTopics } = await supabase.from('topics').select('id, subject_id');
+      const { data: allSubTopics } = await supabase.from('sub_topics').select('id, topic_id');
+      if (!allTopics || !allSubTopics) return;
+
+      const topicToSubject: Record<string, string> = {};
+      allTopics.forEach((t: any) => { topicToSubject[t.id] = t.subject_id; });
+      const subTopicToSubject: Record<string, string> = {};
+      allSubTopics.forEach((st: any) => { subTopicToSubject[st.id] = topicToSubject[st.topic_id] || ''; });
+
+      const counts: Record<string, { pdf: number; video: number; pyq: number }> = {};
+      allMaterials.forEach(m => {
+        const subjId = subTopicToSubject[m.sub_topic_id] || '';
+        if (!subjId) return;
+        if (!counts[subjId]) counts[subjId] = { pdf: 0, video: 0, pyq: 0 };
+        if (m.type === 'pdf') counts[subjId].pdf++;
+        else if (m.type === 'video') counts[subjId].video++;
+        else if (m.type === 'pyq') counts[subjId].pyq++;
+      });
+      setMaterialCounts(counts);
+
+      // Recent materials for user's stream
+      const streamSubjectIds = subjects.filter(s => s.stream_id === selectedStreamId).map(s => s.id);
+      const recent = allMaterials
+        .filter(m => {
+          const subjId = subTopicToSubject[m.sub_topic_id];
+          return subjId && streamSubjectIds.includes(subjId);
+        })
+        .slice(0, 6)
+        .map(m => {
+          const subjId = subTopicToSubject[m.sub_topic_id];
+          const subj = subjects.find(s => s.id === subjId);
+          return { ...m, subjectName: subj?.name || '' };
+        });
+      setRecentMaterials(recent);
+    };
+    loadCounts();
+  }, [subjects, allMaterials, selectedStreamId]);
+
   const filteredSubjects = useMemo(() => {
-    if (!selectedStreamId) return subjects;
+    if (showExplore || !selectedStreamId) return subjects;
     return subjects.filter(s => s.stream_id === selectedStreamId);
-  }, [subjects, selectedStreamId]);
+  }, [subjects, selectedStreamId, showExplore]);
 
   const loadTopics = async (subjectId: string) => {
     setLoading(true);
@@ -91,7 +144,7 @@ const KnowledgeVault = () => {
     setLoading(false);
   };
 
-  // Search
+  // Search across materials, topics, sub_topics
   const handleSearch = useCallback(async (q: string) => {
     if (!q.trim()) { setSearchResults([]); return; }
     setSearching(true);
@@ -117,6 +170,55 @@ const KnowledgeVault = () => {
     } else if (newLevel === 'materials' && item) {
       setSelectedSubTopic(item); setLevel('materials'); setActiveTab('pdf');
       loadMaterials(item.id);
+    }
+  };
+
+  const openMaterial = (m: Material) => {
+    if (m.url) {
+      window.open(m.url, '_blank', 'noopener,noreferrer');
+    } else {
+      toast.error('No URL available for this material');
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!uploadTitle.trim()) { toast.error('Enter a title'); return; }
+    if (!selectedSubTopic) { toast.error('Navigate to a sub-topic first'); return; }
+
+    setUploading(true);
+    try {
+      let url = uploadUrl;
+
+      if (uploadFile) {
+        const ext = uploadFile.name.split('.').pop();
+        const path = `${Date.now()}-${uploadFile.name}`;
+        const { error: uploadError } = await supabase.storage.from('study-materials').upload(path, uploadFile);
+        if (uploadError) throw uploadError;
+        const { data: urlData } = supabase.storage.from('study-materials').getPublicUrl(path);
+        url = urlData.publicUrl;
+      }
+
+      if (!url) { toast.error('Provide a file or URL'); setUploading(false); return; }
+
+      const { error } = await supabase.from('materials').insert({
+        title: uploadTitle.trim(),
+        type: uploadType,
+        url,
+        sub_topic_id: selectedSubTopic.id,
+        file_size: uploadFile ? `${(uploadFile.size / 1024 / 1024).toFixed(1)} MB` : null,
+      });
+      if (error) throw error;
+
+      toast.success('Material uploaded!');
+      setShowUpload(false);
+      setUploadTitle('');
+      setUploadUrl('');
+      setUploadFile(null);
+      loadMaterials(selectedSubTopic.id);
+    } catch (err: any) {
+      toast.error(err.message || 'Upload failed');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -179,7 +281,6 @@ const KnowledgeVault = () => {
           className="w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm outline-none transition-all focus:ring-2"
           style={{ background: 'hsl(var(--surface))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--text))' }}
         />
-        {/* Search results dropdown */}
         {searchQuery.trim() && (
           <div className="absolute top-full left-0 right-0 mt-1 rounded-xl border shadow-lg z-50 max-h-60 overflow-y-auto"
             style={{ background: 'hsl(var(--surface))', borderColor: 'hsl(var(--border))' }}>
@@ -188,40 +289,54 @@ const KnowledgeVault = () => {
             ) : searchResults.length === 0 ? (
               <div className="p-4 text-center text-sm" style={{ color: 'hsl(var(--muted))' }}>No results found</div>
             ) : searchResults.map(m => (
-              <button key={m.id} onClick={() => setSearchQuery('')}
+              <button key={m.id} onClick={() => { openMaterial(m); setSearchQuery(''); }}
                 className="w-full text-left p-3 flex items-center gap-3 hover:bg-accent/5 transition-colors border-b last:border-b-0"
                 style={{ borderColor: 'hsl(var(--border))' }}>
                 <span>{typeEmoji[m.type]}</span>
-                <div>
-                  <p className="text-sm font-medium" style={{ color: 'hsl(var(--text))' }}>{m.title}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate" style={{ color: 'hsl(var(--text))' }}>{m.title}</p>
                   <p className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>{typeLabels[m.type]} {m.file_size && `· ${m.file_size}`}</p>
                 </div>
+                <ExternalLink size={12} style={{ color: 'hsl(var(--accent))' }} />
               </button>
             ))}
           </div>
         )}
       </div>
 
-      {/* Stream pills (at subject level) */}
+      {/* Stream selector at subject level */}
       {level === 'subjects' && (
-        <div className="flex flex-wrap gap-2">
-          {streams.map(s => (
-            <button key={s.id} onClick={() => setSelectedStreamId(s.id)}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
-              style={{
-                background: selectedStreamId === s.id ? 'hsl(var(--accent-soft))' : 'hsl(var(--surface))',
-                borderColor: selectedStreamId === s.id ? 'hsl(var(--accent))' : 'hsl(var(--border))',
-                color: selectedStreamId === s.id ? 'hsl(var(--accent))' : 'hsl(var(--text))',
-              }}>
-              {s.icon} {s.name}
+        <>
+          <div className="flex items-center gap-2 flex-wrap">
+            {!showExplore && selectedStreamId && (
+              <span className="px-3 py-1.5 rounded-lg text-xs font-medium border"
+                style={{ background: 'hsl(var(--accent-soft))', borderColor: 'hsl(var(--accent))', color: 'hsl(var(--accent))' }}>
+                {streams.find(s => s.id === selectedStreamId)?.icon} {streams.find(s => s.id === selectedStreamId)?.name}
+              </span>
+            )}
+            <button onClick={() => setShowExplore(!showExplore)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all flex items-center gap-1"
+              style={{ borderColor: showExplore ? 'hsl(var(--accent))' : 'hsl(var(--border))', color: 'hsl(var(--accent))', background: showExplore ? 'hsl(var(--accent-soft))' : 'transparent' }}>
+              <Globe size={12} /> {showExplore ? 'Show My Stream' : 'Explore Other Streams'}
             </button>
-          ))}
-          <button onClick={() => setShowExplore(!showExplore)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all flex items-center gap-1"
-            style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--accent))' }}>
-            <Globe size={12} /> Explore All
-          </button>
-        </div>
+          </div>
+
+          {showExplore && (
+            <div className="flex flex-wrap gap-2">
+              {streams.map(s => (
+                <button key={s.id} onClick={() => { setSelectedStreamId(s.id); setShowExplore(false); }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+                  style={{
+                    background: selectedStreamId === s.id ? 'hsl(var(--accent-soft))' : 'hsl(var(--surface))',
+                    borderColor: selectedStreamId === s.id ? 'hsl(var(--accent))' : 'hsl(var(--border))',
+                    color: selectedStreamId === s.id ? 'hsl(var(--accent))' : 'hsl(var(--text))',
+                  }}>
+                  {s.icon} {s.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       <AnimatePresence mode="wait">
@@ -229,28 +344,65 @@ const KnowledgeVault = () => {
         {level === 'subjects' && (
           <motion.div key="subjects" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {filteredSubjects.map((sub, i) => (
-                <motion.button key={sub.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                  onClick={() => navigateTo('topics', sub)}
-                  className="card-base text-left hover:border-accent transition-all group">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0"
-                      style={{ background: 'hsl(var(--accent-soft))' }}>
-                      {sub.icon}
+              {filteredSubjects.map((sub, i) => {
+                const counts = materialCounts[sub.id];
+                return (
+                  <motion.button key={sub.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                    onClick={() => navigateTo('topics', sub)}
+                    className="card-base text-left hover:border-accent transition-all group">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0"
+                        style={{ background: 'hsl(var(--accent-soft))' }}>
+                        {sub.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate" style={{ color: 'hsl(var(--text))' }}>{sub.name}</p>
+                        <p className="text-[10px] truncate" style={{ color: 'hsl(var(--muted))' }}>{sub.description}</p>
+                        {counts && (
+                          <div className="flex gap-2 mt-1">
+                            {counts.pdf > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(var(--danger) / 0.1)', color: 'hsl(var(--danger))' }}>📄 {counts.pdf}</span>}
+                            {counts.video > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>🎥 {counts.video}</span>}
+                            {counts.pyq > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(var(--warning) / 0.1)', color: 'hsl(var(--warning))' }}>📝 {counts.pyq}</span>}
+                          </div>
+                        )}
+                      </div>
+                      <ChevronRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'hsl(var(--accent))' }} />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: 'hsl(var(--text))' }}>{sub.name}</p>
-                      <p className="text-[10px] truncate" style={{ color: 'hsl(var(--muted))' }}>{sub.description}</p>
-                    </div>
-                    <ChevronRight size={16} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: 'hsl(var(--accent))' }} />
-                  </div>
-                </motion.button>
-              ))}
+                  </motion.button>
+                );
+              })}
             </div>
             {filteredSubjects.length === 0 && (
               <div className="text-center py-12">
                 <BookOpen size={32} className="mx-auto mb-3" style={{ color: 'hsl(var(--muted))' }} />
                 <p className="text-sm" style={{ color: 'hsl(var(--muted))' }}>No subjects found for this stream</p>
+              </div>
+            )}
+
+            {/* Recently Added */}
+            {recentMaterials.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-display text-sm font-semibold mb-3" style={{ color: 'hsl(var(--text))' }}>🕐 Recently Added</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {recentMaterials.map((m, i) => (
+                    <motion.button key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                      onClick={() => openMaterial(m)}
+                      className="card-base text-left flex items-start gap-3 hover:border-accent transition-all">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm"
+                        style={{ background: m.type === 'pdf' ? 'hsl(var(--danger) / 0.1)' : m.type === 'video' ? 'hsl(var(--accent-soft))' : 'hsl(var(--warning) / 0.1)' }}>
+                        {typeEmoji[m.type]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate" style={{ color: 'hsl(var(--text))' }}>{m.title}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--muted))' }}>{typeLabels[m.type]}</span>
+                          {m.subjectName && <span className="text-[9px]" style={{ color: 'hsl(var(--muted))' }}>{m.subjectName}</span>}
+                        </div>
+                      </div>
+                      <ExternalLink size={12} className="shrink-0 mt-1" style={{ color: 'hsl(var(--accent))' }} />
+                    </motion.button>
+                  ))}
+                </div>
               </div>
             )}
           </motion.div>
@@ -310,6 +462,49 @@ const KnowledgeVault = () => {
         {/* ======= MATERIALS VIEW ======= */}
         {level === 'materials' && (
           <motion.div key="materials" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
+            {/* Upload button */}
+            <div className="flex justify-end">
+              <button onClick={() => setShowUpload(!showUpload)}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all"
+                style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>
+                <Upload size={12} /> Upload Material
+              </button>
+            </div>
+
+            {/* Upload form */}
+            {showUpload && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="card-base space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-semibold" style={{ color: 'hsl(var(--text))' }}>Upload to: {selectedSubTopic?.name}</h4>
+                  <button onClick={() => setShowUpload(false)}><X size={16} style={{ color: 'hsl(var(--muted))' }} /></button>
+                </div>
+                <input value={uploadTitle} onChange={e => setUploadTitle(e.target.value)} placeholder="Material title"
+                  className="w-full px-3 py-2 rounded-lg border border-border text-sm outline-none" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--text))' }} />
+                <div className="flex gap-2">
+                  {(['pdf', 'video', 'pyq'] as const).map(t => (
+                    <button key={t} onClick={() => setUploadType(t)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+                      style={{ background: uploadType === t ? 'hsl(var(--accent-soft))' : 'transparent', borderColor: uploadType === t ? 'hsl(var(--accent))' : 'hsl(var(--border))', color: uploadType === t ? 'hsl(var(--accent))' : 'hsl(var(--text))' }}>
+                      {typeEmoji[t]} {typeLabels[t]}
+                    </button>
+                  ))}
+                </div>
+                <input value={uploadUrl} onChange={e => setUploadUrl(e.target.value)} placeholder="Paste URL (YouTube, Google Drive, etc.)"
+                  className="w-full px-3 py-2 rounded-lg border border-border text-sm outline-none" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--text))' }} />
+                <div className="text-center text-[10px]" style={{ color: 'hsl(var(--muted))' }}>— or —</div>
+                <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={e => setUploadFile(e.target.files?.[0] || null)} />
+                <button onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-3 rounded-xl border-2 border-dashed text-sm transition-all hover:border-accent"
+                  style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted))' }}>
+                  {uploadFile ? `📎 ${uploadFile.name}` : 'Click to upload a file'}
+                </button>
+                <button onClick={handleUpload} disabled={uploading || !uploadTitle.trim()}
+                  className="btn-3d w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-40">
+                  {uploading ? <><Loader2 size={14} className="animate-spin" /> Uploading...</> : <><Upload size={14} /> Upload</>}
+                </button>
+              </motion.div>
+            )}
+
             {/* Tabs */}
             <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'hsl(var(--surface2))' }}>
               {(['pdf', 'video', 'pyq'] as const).map(tab => {
@@ -356,7 +551,8 @@ const KnowledgeVault = () => {
             ) : filteredMaterials.length === 0 ? (
               <div className="text-center py-12 card-base">
                 <div className="text-3xl mb-2">{typeEmoji[activeTab]}</div>
-                <p className="text-sm" style={{ color: 'hsl(var(--muted))' }}>No {typeLabels[activeTab].toLowerCase()} available for this topic yet</p>
+                <p className="text-sm" style={{ color: 'hsl(var(--muted))' }}>No {typeLabels[activeTab].toLowerCase()} available yet</p>
+                <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted))' }}>Upload the first one!</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -377,25 +573,17 @@ const KnowledgeVault = () => {
                         {m.year && <span className="px-1.5 py-0.5 rounded-full font-medium" style={{ background: 'hsl(var(--warning) / 0.1)', color: 'hsl(var(--warning))' }}>{m.year}</span>}
                       </div>
                       <div className="flex gap-2 mt-2">
-                        {m.type === 'video' ? (
-                          <a href={m.url} target="_blank" rel="noopener noreferrer"
-                            className="text-[10px] font-medium px-3 py-1 rounded-lg flex items-center gap-1 transition-all"
-                            style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>
-                            <Play size={10} /> Watch
+                        <button onClick={() => openMaterial(m)}
+                          className="text-[10px] font-medium px-3 py-1 rounded-lg flex items-center gap-1 transition-all hover:opacity-80"
+                          style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>
+                          {m.type === 'video' ? <><Play size={10} /> Watch</> : <><ExternalLink size={10} /> Open</>}
+                        </button>
+                        {m.type !== 'video' && (
+                          <a href={m.url} download target="_blank" rel="noopener noreferrer"
+                            className="text-[10px] font-medium px-3 py-1 rounded-lg flex items-center gap-1"
+                            style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--text))' }}>
+                            <Download size={10} /> Download
                           </a>
-                        ) : (
-                          <>
-                            <button className="text-[10px] font-medium px-3 py-1 rounded-lg flex items-center gap-1"
-                              style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}
-                              onClick={() => toast.info('PDF viewer coming soon!')}>
-                              <Eye size={10} /> View
-                            </button>
-                            <button className="text-[10px] font-medium px-3 py-1 rounded-lg flex items-center gap-1"
-                              style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--text))' }}
-                              onClick={() => toast.info('Download coming soon!')}>
-                              <Download size={10} /> Download
-                            </button>
-                          </>
                         )}
                       </div>
                     </div>
