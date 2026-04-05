@@ -17,6 +17,13 @@ interface Question {
   hint?: string;
 }
 
+interface BossQuestion {
+  question: string;
+  options: string[];
+  correct: number;
+  explanation: string;
+}
+
 const Quiz = () => {
   const { user, setUser } = useApp();
   const { recoveryMode } = useTheme();
@@ -52,8 +59,13 @@ const Quiz = () => {
   const [breakActive, setBreakActive] = useState(false);
   const [breathPhase, setBreathPhase] = useState<'idle' | 'in' | 'hold' | 'out'>('idle');
   const [weakConcepts, setWeakConcepts] = useState<string[]>([]);
-  const [bossTimer, setBossTimer] = useState(30);
+  const [bossTimer, setBossTimer] = useState(60);
   const [bossQCount, setBossQCount] = useState(0);
+  const [bossQuestions, setBossQuestions] = useState<BossQuestion[]>([]);
+  const [bossCurrentQ, setBossCurrentQ] = useState(0);
+  const [bossSelected, setBossSelected] = useState<number | null>(null);
+  const [bossAnswered, setBossAnswered] = useState(false);
+  const [bossLoading, setBossLoading] = useState(false);
   const qStartTime = useRef(Date.now());
   const responseTimes = useRef<number[]>([]);
 
@@ -107,14 +119,10 @@ const Quiz = () => {
     }
   }, [correctStreak]);
 
-  // Brain fog after 3 wrong
   useEffect(() => {
-    if (wrongStreak >= 3 && !brainFog) {
-      setBrainFog(true);
-    }
+    if (wrongStreak >= 3 && !brainFog) setBrainFog(true);
   }, [wrongStreak]);
 
-  // Break timer
   useEffect(() => {
     if (!breakActive) return;
     if (breakTimer <= 0) { setBreakActive(false); setBrainFog(false); setDifficulty('easy'); setEncouragement('Welcome back 🌿 Switched to easier questions.'); setTimeout(() => setEncouragement(null), 4000); return; }
@@ -133,7 +141,7 @@ const Quiz = () => {
   // Boss timer
   useEffect(() => {
     if (!showBoss || bossDefeated) return;
-    if (bossTimer <= 0) { setShowBoss(false); setBossDefeated(false); setBossHP(99); setBossTimer(30); setBossQCount(0); toast.error("Time's up! Boss escaped. Keep going! 💪"); return; }
+    if (bossTimer <= 0) { setShowBoss(false); setBossDefeated(false); setBossHP(99); setBossTimer(60); setBossQCount(0); setBossQuestions([]); setBossCurrentQ(0); toast.error("Time's up! Boss escaped. Keep going! 💪"); return; }
     const t = setTimeout(() => setBossTimer(prev => prev - 1), 1000);
     return () => clearTimeout(t);
   }, [showBoss, bossTimer, bossDefeated]);
@@ -165,9 +173,81 @@ const Quiz = () => {
       if (q.concept && !weakConcepts.includes(q.concept)) setWeakConcepts(prev => [...prev, q.concept]);
     }
 
-    // Boss trigger: every 5 questions with streak >= 3
+    // Boss trigger: every 5 questions with streak >= 2
     if ((currentQ + 1) % 5 === 0 && correctStreak >= 2 && isCorrect && !recoveryMode) {
-      setTimeout(() => { setShowBoss(true); setBossHP(99); setBossTimer(30); setBossDefeated(false); setBossQCount(0); }, 1500);
+      setTimeout(() => triggerBoss(), 1500);
+    }
+  };
+
+  const triggerBoss = async () => {
+    setBossLoading(true);
+    setShowBoss(true);
+    setBossHP(99);
+    setBossTimer(60);
+    setBossDefeated(false);
+    setBossQCount(0);
+    setBossCurrentQ(0);
+    setBossSelected(null);
+    setBossAnswered(false);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-learning', {
+        body: { subject, subtopic, mode: 'boss-battle' },
+      });
+      if (error) throw error;
+      const result = data?.result;
+      if (Array.isArray(result) && result.length > 0) {
+        setBossQuestions(result.slice(0, 3));
+      } else {
+        // Fallback boss questions
+        setBossQuestions([
+          { question: `What is the most important application of ${subtopic} in real life?`, options: ['Engineering', 'Medicine', 'Space Science', 'All of the above'], correct: 3, explanation: 'This concept has wide applications across all fields!' },
+          { question: `Which concept is a prerequisite for understanding ${subtopic}?`, options: ['Basic Mathematics', 'Fundamentals', 'Observation', 'Critical thinking'], correct: 1, explanation: 'Strong fundamentals are key to mastering any topic.' },
+          { question: `How would you explain ${subtopic} to a 5-year-old?`, options: ['Using analogies', 'With formulas', 'Through experiments', 'Using simple analogies and examples'], correct: 3, explanation: 'Simple analogies make complex concepts accessible.' },
+        ]);
+      }
+    } catch {
+      setBossQuestions([
+        { question: `What is the core principle behind ${subtopic}?`, options: ['Conservation', 'Equilibrium', 'Transformation', 'Depends on context'], correct: 3, explanation: 'Context matters in understanding core principles.' },
+        { question: `If you could teach ${subtopic} in one sentence, what would it be?`, options: ['A formula', 'A story', 'An analogy', 'A question'], correct: 2, explanation: 'Analogies are the most powerful teaching tools.' },
+        { question: `What makes ${subtopic} challenging for most students?`, options: ['Abstract thinking', 'Too many formulas', 'Lack of practice', 'All of these'], correct: 3, explanation: 'Multiple factors contribute to difficulty.' },
+      ]);
+    } finally {
+      setBossLoading(false);
+    }
+  };
+
+  const handleBossAnswer = (index: number) => {
+    if (bossAnswered) return;
+    setBossSelected(index);
+    setBossAnswered(true);
+    const bq = bossQuestions[bossCurrentQ];
+    if (!bq) return;
+
+    if (index === bq.correct) {
+      const newHP = bossHP - 33;
+      setBossHP(newHP);
+      setBossShake(true);
+      setBossQCount(prev => prev + 1);
+      setTimeout(() => setBossShake(false), 500);
+      if (newHP <= 0) {
+        setBossDefeated(true);
+        setSessionXP(prev => prev + 80);
+        setUser(prev => ({ ...prev, xp: prev.xp + 80 }));
+      }
+    }
+  };
+
+  const nextBossQuestion = () => {
+    if (bossCurrentQ < bossQuestions.length - 1 && !bossDefeated) {
+      setBossCurrentQ(prev => prev + 1);
+      setBossSelected(null);
+      setBossAnswered(false);
+    } else if (!bossDefeated) {
+      // Boss survived
+      setShowBoss(false);
+      setBossQuestions([]);
+      toast('Boss survived! Keep going to trigger another battle! 💪');
     }
   };
 
@@ -196,15 +276,6 @@ const Quiz = () => {
     if (action === 'game') navigate('/games');
     if (action === 'easier') { setDifficulty('easy'); setEncouragement('Switched to easier questions.'); setTimeout(() => setEncouragement(null), 3000); }
     if (action === 'breathe') startBreak();
-  };
-
-  const handleBossAttack = () => {
-    const newHP = bossHP - 33;
-    setBossHP(newHP);
-    setBossShake(true);
-    setBossQCount(prev => prev + 1);
-    setTimeout(() => setBossShake(false), 500);
-    if (newHP <= 0) { setBossDefeated(true); setSessionXP(prev => prev + 80); setUser(prev => ({ ...prev, xp: prev.xp + 80 })); }
   };
 
   // Topic selection with question count
@@ -305,7 +376,6 @@ const Quiz = () => {
             <h3 className="font-display text-xl font-bold mb-2 text-white">Saathi noticed</h3>
             <p className="text-sm text-white/50">Your brain might need a moment.<br/>Every option is valid. No guilt.</p>
           </div>
-
           <div className="space-y-2.5">
             {[
               { icon: <Wind size={16} />, label: 'Breathe with me — 30s', action: 'breathe' },
@@ -326,13 +396,14 @@ const Quiz = () => {
     );
   }
 
-  // Boss Battle
+  // Boss Battle with QUESTIONS
   if (showBoss) {
     const segments = [{ filled: bossHP > 66 }, { filled: bossHP > 33 }, { filled: bossHP > 0 }];
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'linear-gradient(180deg, hsl(0 20% 8%), hsl(0 15% 12%))' }}>
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%)' }} />
-        {bossDefeated ? (
+    const bq = bossQuestions[bossCurrentQ];
+
+    if (bossDefeated) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'linear-gradient(180deg, hsl(0 20% 8%), hsl(0 15% 12%))' }}>
           <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative z-10 text-center max-w-sm">
             <motion.span className="text-7xl block mb-4" animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.2, 1] }} transition={{ duration: 0.6 }}>🎉</motion.span>
             <h2 className="font-display text-3xl font-bold mb-2 text-white">Victory!</h2>
@@ -341,33 +412,89 @@ const Quiz = () => {
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl mb-6" style={{ background: 'rgba(255,215,0,0.15)', border: '1px solid rgba(255,215,0,0.3)' }}>
               <Zap size={20} className="text-yellow-400" /><span className="stat-number text-2xl font-bold text-yellow-400">+80 XP</span>
             </motion.div><br />
-            <button onClick={() => { setShowBoss(false); setBossDefeated(false); setBossHP(99); setBossTimer(30); setBossQCount(0); }} className="btn-3d px-8 py-3 font-semibold mt-2">Continue Quiz →</button>
+            <button onClick={() => { setShowBoss(false); setBossQuestions([]); }} className="btn-3d px-8 py-3 font-semibold mt-2">Continue Quiz →</button>
           </motion.div>
-        ) : (
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative z-10 text-center max-w-md w-full px-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-xl font-bold text-white flex items-center gap-2"><Swords size={20} className="text-red-400" /> Boss Battle</h2>
-              <span className="stat-number text-sm px-3 py-1 rounded-full" style={{ background: bossTimer <= 10 ? 'rgba(255,60,60,0.2)' : 'rgba(255,255,255,0.1)', color: bossTimer <= 10 ? '#ff6060' : 'rgba(255,255,255,0.6)' }}>⏱ {bossTimer}s</span>
-            </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'linear-gradient(180deg, hsl(0 20% 8%), hsl(0 15% 12%))' }}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%)' }} />
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative z-10 w-full max-w-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-display text-xl font-bold text-white flex items-center gap-2"><Swords size={20} className="text-red-400" /> Boss Battle</h2>
+            <span className="stat-number text-sm px-3 py-1 rounded-full" style={{ background: bossTimer <= 10 ? 'rgba(255,60,60,0.2)' : 'rgba(255,255,255,0.1)', color: bossTimer <= 10 ? '#ff6060' : 'rgba(255,255,255,0.6)' }}>⏱ {bossTimer}s</span>
+          </div>
+
+          <div className="flex items-center gap-4 mb-4">
             <motion.div animate={bossShake ? { x: [-8, 8, -6, 6, -3, 3, 0] } : bossHP <= 33 ? { x: [-2, 2, -2, 2, 0] } : {}}
               transition={{ duration: 0.4, repeat: bossHP <= 33 && !bossShake ? Infinity : 0 }}
-              className="text-8xl mb-4 block" style={{ filter: `drop-shadow(0 0 ${bossHP > 60 ? 30 : 15}px rgba(220,38,38,0.5))` }}>🐉</motion.div>
-            <div className="flex gap-1.5 mb-2 max-w-xs mx-auto">
-              {segments.map((seg, i) => (
-                <div key={i} className="flex-1 h-4 rounded-md overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                  <motion.div initial={{ width: '100%' }} animate={{ width: seg.filled ? '100%' : '0%' }} className="h-full rounded-md"
-                    style={{ background: bossHP <= 33 ? 'hsl(0 70% 50%)' : bossHP <= 66 ? 'hsl(28 80% 55%)' : 'hsl(0 60% 50%)' }} />
-                </div>
-              ))}
+              className="text-6xl" style={{ filter: `drop-shadow(0 0 ${bossHP > 60 ? 30 : 15}px rgba(220,38,38,0.5))` }}>🐉</motion.div>
+            <div className="flex-1">
+              <div className="flex gap-1.5 mb-1">
+                {segments.map((seg, i) => (
+                  <div key={i} className="flex-1 h-3 rounded-md overflow-hidden" style={{ background: 'rgba(255,255,255,0.1)' }}>
+                    <motion.div initial={{ width: '100%' }} animate={{ width: seg.filled ? '100%' : '0%' }} className="h-full rounded-md"
+                      style={{ background: bossHP <= 33 ? 'hsl(0 70% 50%)' : bossHP <= 66 ? 'hsl(28 80% 55%)' : 'hsl(0 60% 50%)' }} />
+                  </div>
+                ))}
+              </div>
+              <p className="stat-number text-xs text-white/40">HP: {Math.max(0, bossHP)}/99 · Q{bossCurrentQ + 1}/3</p>
             </div>
-            <p className="stat-number text-sm mb-6 text-white/40">HP: {Math.max(0, bossHP)}/99 · Hit {bossQCount}/3</p>
-            <button onClick={handleBossAttack} className="relative px-10 py-4 rounded-xl font-display text-lg font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, hsl(0 60% 45%), hsl(0 70% 35%))', boxShadow: '0 4px 0 hsl(0 50% 25%), 0 8px 20px rgba(0,0,0,0.4)' }}>
-              <Swords size={20} className="inline mr-2" /> Attack! (-33 HP)
-            </button>
-            <button onClick={() => { setShowBoss(false); setBossHP(99); setBossTimer(30); setBossQCount(0); }} className="block mx-auto mt-4 text-xs text-white/30">Skip boss</button>
-          </motion.div>
-        )}
+          </div>
+
+          {bossLoading ? (
+            <div className="text-center py-12">
+              <Loader2 size={32} className="animate-spin mx-auto text-white/40 mb-3" />
+              <p className="text-sm text-white/50">Boss is preparing questions...</p>
+            </div>
+          ) : bq ? (
+            <div className="space-y-3">
+              <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <p className="text-sm font-medium text-white leading-relaxed">{bq.question}</p>
+              </div>
+
+              <div className="space-y-2">
+                {bq.options.map((opt, i) => {
+                  const isCorrect = bossAnswered && i === bq.correct;
+                  const isWrong = bossAnswered && i === bossSelected && i !== bq.correct;
+                  return (
+                    <button key={i} onClick={() => handleBossAnswer(i)} disabled={bossAnswered}
+                      className="w-full text-left p-3 rounded-xl text-sm font-medium flex items-center gap-3 transition-all"
+                      style={{
+                        background: isCorrect ? 'rgba(80,200,120,0.15)' : isWrong ? 'rgba(255,80,80,0.15)' : 'rgba(255,255,255,0.06)',
+                        border: `1px solid ${isCorrect ? 'rgba(80,200,120,0.4)' : isWrong ? 'rgba(255,80,80,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                        color: 'rgba(255,255,255,0.85)',
+                      }}>
+                      <span className="w-6 h-6 rounded-full border flex items-center justify-center text-xs font-mono flex-shrink-0"
+                        style={{ borderColor: isCorrect ? 'rgba(80,200,120,0.6)' : isWrong ? 'rgba(255,80,80,0.6)' : 'rgba(255,255,255,0.2)' }}>
+                        {String.fromCharCode(65 + i)}
+                      </span>
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {bossAnswered && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <p className="text-xs text-white/70">{bq.explanation}</p>
+                  {!bossDefeated && (
+                    <button onClick={nextBossQuestion} className="mt-2 px-4 py-2 rounded-lg text-xs font-medium"
+                      style={{ background: 'rgba(255,255,255,0.1)', color: 'white' }}>
+                      {bossCurrentQ < bossQuestions.length - 1 ? 'Next Boss Question →' : 'End Battle'}
+                    </button>
+                  )}
+                </motion.div>
+              )}
+            </div>
+          ) : (
+            <p className="text-white/50 text-center py-8">No questions available</p>
+          )}
+
+          <button onClick={() => { setShowBoss(false); setBossQuestions([]); }} className="block mx-auto mt-4 text-xs text-white/30">Skip boss</button>
+        </motion.div>
       </div>
     );
   }

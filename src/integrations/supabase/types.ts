@@ -61,6 +61,60 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          burnout_score: number | null
+          created_at: string | null
+          exam_type: string | null
+          hero_level: number | null
+          hero_title: string | null
+          id: string
+          mood: string | null
+          name: string
+          onboarding_complete: boolean | null
+          readiness_score: number | null
+          streak: number | null
+          study_time: string | null
+          subjects: string[] | null
+          updated_at: string | null
+          xp: number | null
+        }
+        Insert: {
+          burnout_score?: number | null
+          created_at?: string | null
+          exam_type?: string | null
+          hero_level?: number | null
+          hero_title?: string | null
+          id: string
+          mood?: string | null
+          name?: string
+          onboarding_complete?: boolean | null
+          readiness_score?: number | null
+          streak?: number | null
+          study_time?: string | null
+          subjects?: string[] | null
+          updated_at?: string | null
+          xp?: number | null
+        }
+        Update: {
+          burnout_score?: number | null
+          created_at?: string | null
+          exam_type?: string | null
+          hero_level?: number | null
+          hero_title?: string | null
+          id?: string
+          mood?: string | null
+          name?: string
+          onboarding_complete?: boolean | null
+          readiness_score?: number | null
+          streak?: number | null
+          study_time?: string | null
+          subjects?: string[] | null
+          updated_at?: string | null
+          xp?: number | null
+        }
+        Relationships: []
+      }
       streams: {
         Row: {
           created_at: string | null
