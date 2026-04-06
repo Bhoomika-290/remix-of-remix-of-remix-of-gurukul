@@ -53,8 +53,12 @@ export const useApp = () => {
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<UserProfile>(() => {
-    const saved = localStorage.getItem('saathi-user');
-    return saved ? JSON.parse(saved) : defaultUser;
+    try {
+      const saved = localStorage.getItem('saathi-user');
+      return saved ? JSON.parse(saved) : defaultUser;
+    } catch {
+      return defaultUser;
+    }
   });
 
   const updateUser = (u: UserProfile | ((prev: UserProfile) => UserProfile)) => {
@@ -69,6 +73,62 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     updateUser(prev => ({ ...prev, name, email, isLoggedIn: true }));
   };
 
+  const hydrateUserFromSession = async (session: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']) => {
+    if (!session) return;
+
+    const fallbackName = session.user.user_metadata?.name || session.user.email?.split('@')[0] || '';
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      await supabase.from('profiles').upsert(
+        {
+          id: session.user.id,
+          name: fallbackName,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      );
+    }
+
+    const currentProfile = profile ?? {
+      name: fallbackName,
+      exam_type: '',
+      subjects: [],
+      study_time: '',
+      mood: '',
+      xp: 0,
+      streak: 0,
+      hero_level: 1,
+      hero_title: 'Beginner',
+      burnout_score: 0,
+      readiness_score: 50,
+      onboarding_complete: false,
+    };
+
+    updateUser(prev => ({
+      ...prev,
+      name: currentProfile.name || fallbackName,
+      email: session.user.email || '',
+      examType: currentProfile.exam_type || '',
+      subjects: currentProfile.subjects || [],
+      studyTime: currentProfile.study_time || '',
+      mood: currentProfile.mood || '',
+      xp: currentProfile.xp || 0,
+      streak: currentProfile.streak || 0,
+      heroLevel: currentProfile.hero_level || 1,
+      heroTitle: currentProfile.hero_title || 'Beginner',
+      burnoutScore: currentProfile.burnout_score || 0,
+      readinessScore: currentProfile.readiness_score || 50,
+      onboardingComplete: currentProfile.onboarding_complete || false,
+      isLoggedIn: true,
+    }));
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     localStorage.removeItem('saathi-user');
@@ -78,10 +138,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Sync profile to database
   const syncProfile = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session || !user.isLoggedIn) return;
     
-    await supabase.from('profiles').update({
-      name: user.name,
+    await supabase.from('profiles').upsert({
+      id: session.user.id,
+      name: user.name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
       exam_type: user.examType,
       subjects: user.subjects,
       study_time: user.studyTime,
@@ -94,43 +155,24 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       readiness_score: user.readinessScore,
       onboarding_complete: user.onboardingComplete,
       updated_at: new Date().toISOString(),
-    }).eq('id', session.user.id);
+    }, { onConflict: 'id' });
   };
 
   // Listen for auth state changes
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-        if (profile) {
-          updateUser(prev => ({
-            ...prev,
-            name: profile.name || session.user.email?.split('@')[0] || '',
-            email: session.user.email || '',
-            examType: profile.exam_type || '',
-            subjects: profile.subjects || [],
-            studyTime: profile.study_time || '',
-            mood: profile.mood || '',
-            xp: profile.xp || 0,
-            streak: profile.streak || 0,
-            heroLevel: profile.hero_level || 1,
-            heroTitle: profile.hero_title || 'Beginner',
-            burnoutScore: profile.burnout_score || 0,
-            readinessScore: profile.readiness_score || 50,
-            onboardingComplete: profile.onboarding_complete || false,
-            isLoggedIn: true,
-          }));
-        } else {
-          updateUser(prev => ({
-            ...prev,
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || '',
-            email: session.user.email || '',
-            isLoggedIn: true,
-          }));
-        }
-      } else if (event === 'SIGNED_OUT') {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
         localStorage.removeItem('saathi-user');
         setUser(defaultUser);
+        return;
+      }
+
+      void hydrateUserFromSession(session);
+    });
+
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        void hydrateUserFromSession(session);
       }
     });
 
@@ -140,10 +182,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Sync profile when key fields change
   useEffect(() => {
     if (user.isLoggedIn && user.onboardingComplete) {
-      const timeout = setTimeout(() => syncProfile(), 2000);
+      const timeout = setTimeout(() => {
+        void syncProfile();
+      }, 2000);
       return () => clearTimeout(timeout);
     }
-  }, [user.xp, user.streak, user.onboardingComplete, user.examType, user.subjects.length]);
+  }, [user.name, user.examType, user.subjects, user.studyTime, user.mood, user.xp, user.streak, user.heroLevel, user.heroTitle, user.burnoutScore, user.readinessScore, user.onboardingComplete, user.isLoggedIn]);
 
   return (
     <AppContext.Provider value={{ user, setUser: updateUser, login, logout, syncProfile }}>
