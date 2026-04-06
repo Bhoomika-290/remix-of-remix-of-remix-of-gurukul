@@ -45,6 +45,7 @@ const KnowledgeVault = () => {
   const [uploadType, setUploadType] = useState<'pdf' | 'video' | 'pyq'>('pdf');
   const [uploadUrl, setUploadUrl] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const userStreamName = useMemo(() => {
@@ -59,11 +60,17 @@ const KnowledgeVault = () => {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      const [{ data: st }, { data: subs }, { data: allMats }] = await Promise.all([
+      setError(null);
+      const [{ data: st, error: streamsError }, { data: subs, error: subjectsError }, { data: allMats, error: materialsError }] = await Promise.all([
         supabase.from('streams').select('*').order('name'),
         supabase.from('subjects').select('*').order('name'),
         supabase.from('materials').select('*').order('created_at', { ascending: false }),
       ]);
+
+      if (streamsError || subjectsError || materialsError) {
+        setError('Could not load the knowledge vault right now. Please try again.');
+      }
+
       setStreams((st as Stream[]) || []);
       setSubjects((subs as Subject[]) || []);
       setAllMaterials((allMats as Material[]) || []);
@@ -125,21 +132,27 @@ const KnowledgeVault = () => {
 
   const loadTopics = async (subjectId: string) => {
     setLoading(true);
-    const { data } = await supabase.from('topics').select('*').eq('subject_id', subjectId).order('name');
+    setError(null);
+    const { data, error } = await supabase.from('topics').select('*').eq('subject_id', subjectId).order('name');
+    if (error) setError('Could not load topics. Please try again.');
     setTopics((data as Topic[]) || []);
     setLoading(false);
   };
 
   const loadSubTopics = async (topicId: string) => {
     setLoading(true);
-    const { data } = await supabase.from('sub_topics').select('*').eq('topic_id', topicId).order('name');
+    setError(null);
+    const { data, error } = await supabase.from('sub_topics').select('*').eq('topic_id', topicId).order('name');
+    if (error) setError('Could not load sub-topics. Please try again.');
     setSubTopics((data as SubTopic[]) || []);
     setLoading(false);
   };
 
   const loadMaterials = async (subTopicId: string) => {
     setLoading(true);
-    const { data } = await supabase.from('materials').select('*').eq('sub_topic_id', subTopicId).order('created_at', { ascending: false });
+    setError(null);
+    const { data, error } = await supabase.from('materials').select('*').eq('sub_topic_id', subTopicId).order('created_at', { ascending: false });
+    if (error) setError('Could not load materials. Please try again.');
     setMaterials((data as Material[]) || []);
     setLoading(false);
   };
@@ -148,7 +161,8 @@ const KnowledgeVault = () => {
   const handleSearch = useCallback(async (q: string) => {
     if (!q.trim()) { setSearchResults([]); return; }
     setSearching(true);
-    const { data } = await supabase.from('materials').select('*').ilike('title', `%${q}%`).limit(20);
+    const { data, error } = await supabase.from('materials').select('*').ilike('title', `%${q}%`).limit(20);
+    if (error) setError('Search is unavailable right now.');
     setSearchResults((data as Material[]) || []);
     setSearching(false);
   }, []);
@@ -200,6 +214,12 @@ const KnowledgeVault = () => {
 
       if (!url) { toast.error('Provide a file or URL'); setUploading(false); return; }
 
+      if (uploadType === 'video' && !uploadFile && !/(youtube\.com|youtu\.be|vimeo\.com|drive\.google\.com|\.mp4($|\?))/i.test(url)) {
+        toast.error('Please add a valid video link');
+        setUploading(false);
+        return;
+      }
+
       const { error } = await supabase.from('materials').insert({
         title: uploadTitle.trim(),
         type: uploadType,
@@ -214,7 +234,12 @@ const KnowledgeVault = () => {
       setUploadTitle('');
       setUploadUrl('');
       setUploadFile(null);
-      loadMaterials(selectedSubTopic.id);
+      await Promise.all([
+        loadMaterials(selectedSubTopic.id),
+        supabase.from('materials').select('*').order('created_at', { ascending: false }).then(({ data }) => {
+          setAllMaterials((data as Material[]) || []);
+        }),
+      ]);
     } catch (err: any) {
       toast.error(err.message || 'Upload failed');
     } finally {
@@ -303,6 +328,13 @@ const KnowledgeVault = () => {
           </div>
         )}
       </div>
+
+      {error && (
+        <div className="rounded-xl border px-4 py-3 text-sm flex items-center justify-between gap-3" style={{ background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted))' }}>
+          <span>{error}</span>
+          <button onClick={() => window.location.reload()} className="text-xs font-semibold" style={{ color: 'hsl(var(--accent))' }}>Retry</button>
+        </div>
+      )}
 
       {/* Stream selector at subject level */}
       {level === 'subjects' && (
@@ -480,7 +512,7 @@ const KnowledgeVault = () => {
                 </div>
                 <input value={uploadTitle} onChange={e => setUploadTitle(e.target.value)} placeholder="Material title"
                   className="w-full px-3 py-2 rounded-lg border border-border text-sm outline-none" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--text))' }} />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {(['pdf', 'video', 'pyq'] as const).map(t => (
                     <button key={t} onClick={() => setUploadType(t)}
                       className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
@@ -492,7 +524,7 @@ const KnowledgeVault = () => {
                 <input value={uploadUrl} onChange={e => setUploadUrl(e.target.value)} placeholder="Paste URL (YouTube, Google Drive, etc.)"
                   className="w-full px-3 py-2 rounded-lg border border-border text-sm outline-none" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--text))' }} />
                 <div className="text-center text-[10px]" style={{ color: 'hsl(var(--muted))' }}>— or —</div>
-                <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={e => setUploadFile(e.target.files?.[0] || null)} />
+                <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.mp4,.mov,.webm" className="hidden" onChange={e => setUploadFile(e.target.files?.[0] || null)} />
                 <button onClick={() => fileInputRef.current?.click()}
                   className="w-full py-3 rounded-xl border-2 border-dashed text-sm transition-all hover:border-accent"
                   style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted))' }}>
@@ -506,7 +538,7 @@ const KnowledgeVault = () => {
             )}
 
             {/* Tabs */}
-            <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'hsl(var(--surface2))' }}>
+            <div className="flex flex-wrap gap-1 p-1 rounded-xl" style={{ background: 'hsl(var(--surface2))' }}>
               {(['pdf', 'video', 'pyq'] as const).map(tab => {
                 const Icon = typeIcons[tab];
                 return (

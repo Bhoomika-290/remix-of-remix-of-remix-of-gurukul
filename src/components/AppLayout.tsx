@@ -31,7 +31,9 @@ const AppLayout = () => {
       <aside className="hidden lg:flex flex-col items-center w-16 py-6 gap-6 border-r border-border fixed h-full z-40"
         style={{ background: 'hsl(var(--surface))' }}>
         <Link to="/dashboard" className="block">
-          <img src={gurukulLogo} alt="Gurukul" className="w-9 h-9 object-contain hover:scale-110 transition-transform" style={{ mixBlendMode: 'multiply' }} />
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border" style={{ background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))' }}>
+            <img src={gurukulLogo} alt="Gurukul" className="w-7 h-7 object-contain hover:scale-110 transition-transform" />
+          </div>
         </Link>
         <div className="flex-1 flex flex-col items-center gap-2 mt-4">
           {navItems.map(item => {
@@ -68,10 +70,12 @@ const AppLayout = () => {
               <ArrowLeft size={18} />
             </button>
           )}
-          <Link to="/dashboard" className="flex items-center gap-2">
-            <img src={gurukulLogo} alt="Gurukul" className="h-8 w-auto object-contain" style={{ mixBlendMode: 'multiply' }} />
-            <div className="flex flex-col">
-              <span className="font-brand text-lg font-bold tracking-tight bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent leading-tight">
+          <Link to="/dashboard" className="flex items-center gap-2 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border" style={{ background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))' }}>
+              <img src={gurukulLogo} alt="Gurukul" className="h-7 w-7 object-contain" />
+            </div>
+            <div className="flex min-w-0 flex-col">
+              <span className="font-brand text-base sm:text-lg font-bold tracking-tight bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent leading-tight truncate">
                 Gurukul
               </span>
             </div>
@@ -90,7 +94,7 @@ const AppLayout = () => {
         </div>
       </header>
 
-      <main className="flex-1 lg:ml-16 pb-20 lg:pb-0">
+      <main className="flex-1 lg:ml-16 pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-0">
         {canGoBack && (
           <div className="hidden lg:block px-6 pt-4">
             <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border transition-all hover:border-accent"
@@ -103,7 +107,7 @@ const AppLayout = () => {
       </main>
 
       {/* Mobile Bottom Nav */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around py-2 border-t border-border z-40"
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around border-t border-border z-40 px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]"
         style={{ background: 'hsl(var(--surface))' }}>
         {navItems.slice(0, 5).map(item => {
           const active = location.pathname.startsWith(item.path);

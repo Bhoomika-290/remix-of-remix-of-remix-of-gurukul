@@ -21,16 +21,30 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { setUser, user } = useApp();
+  const { setUser } = useApp();
 
   // Check if already logged in
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        navigate(user.onboardingComplete ? '/dashboard' : '/onboarding');
+    let active = true;
+
+    void supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session || !active) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarding_complete')
+        .eq('id', session.user.id)
+        .maybeSingle();
+
+      if (active) {
+        navigate(profile?.onboarding_complete ? '/dashboard' : '/onboarding', { replace: true });
       }
     });
-  }, []);
+
+    return () => {
+      active = false;
+    };
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,16 +52,18 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+
       if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (error) throw error;
         // Load profile
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).maybeSingle();
         if (profile) {
           setUser(prev => ({
             ...prev,
-            name: profile.name || email.split('@')[0],
-            email,
+            name: profile.name || normalizedEmail.split('@')[0],
+            email: normalizedEmail,
             examType: profile.exam_type || '',
             subjects: profile.subjects || [],
             studyTime: profile.study_time || '',
@@ -61,18 +77,21 @@ const Auth = () => {
             onboardingComplete: profile.onboarding_complete || false,
             isLoggedIn: true,
           }));
-          navigate(profile.onboarding_complete ? '/dashboard' : '/onboarding');
+          navigate(profile.onboarding_complete ? '/dashboard' : '/onboarding', { replace: true });
         } else {
-          setUser(prev => ({ ...prev, name: email.split('@')[0], email, isLoggedIn: true }));
-          navigate('/onboarding');
+          setUser(prev => ({ ...prev, name: normalizedEmail.split('@')[0], email: normalizedEmail, isLoggedIn: true }));
+          navigate('/onboarding', { replace: true });
         }
         toast.success('Welcome back!');
       } else {
         if (!name.trim()) { toast.error('Please enter your name'); setLoading(false); return; }
         const { error } = await supabase.auth.signUp({
-          email,
+          email: normalizedEmail,
           password,
-          options: { data: { name } },
+          options: {
+            data: { name: name.trim() },
+            emailRedirectTo: window.location.origin,
+          },
         });
         if (error) throw error;
         toast.success('Check your email for verification link!');
@@ -85,7 +104,19 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: 'hsl(var(--bg))' }}>
+    <div className="min-h-screen flex flex-col lg:flex-row" style={{ background: 'hsl(var(--bg))' }}>
+      <div className="lg:hidden px-4 pt-6 pb-2">
+        <div className="flex items-center gap-4 rounded-[28px] border p-4" style={{ background: 'hsl(var(--accent-soft))', borderColor: 'hsl(var(--border))' }}>
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border" style={{ background: 'hsl(var(--surface))', borderColor: 'hsl(var(--border))' }}>
+            <img src={gurukulLogo} alt="Gurukul" className="h-10 w-10 object-contain" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="font-brand text-xl font-bold leading-tight bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent">Gurukul</h1>
+            <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted))' }}>A calm study companion that adapts to your pace.</p>
+          </div>
+        </div>
+      </div>
+
       {/* Left — Floating Quotes (desktop only) */}
       <div className="hidden lg:flex flex-1 items-center justify-center p-12 relative overflow-hidden"
         style={{ background: 'linear-gradient(135deg, hsl(var(--accent-soft)), hsl(var(--surface2)))' }}>
@@ -100,10 +131,12 @@ const Auth = () => {
       </div>
 
       {/* Right — Auth Form */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card-base w-full max-w-md">
-          <div className="text-center mb-8">
-            <img src={gurukulLogo} alt="Gurukul" className="w-14 h-14 object-contain mx-auto" style={{ mixBlendMode: 'multiply' }} />
+      <div className="flex-1 flex items-center justify-center p-4 pb-8 sm:p-6 lg:p-12">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card-base w-full max-w-md rounded-[28px]">
+          <div className="text-center mb-8 hidden lg:block">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border" style={{ background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))' }}>
+              <img src={gurukulLogo} alt="Gurukul" className="w-10 h-10 object-contain" />
+            </div>
             <h1 className="font-brand text-2xl font-bold mt-3 bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent">Gurukul</h1>
             <p className="text-sm mt-1" style={{ color: 'hsl(var(--muted))' }}>Your study companion that understands how you feel</p>
           </div>
@@ -133,7 +166,7 @@ const Auth = () => {
 
           <p className="text-center text-xs mt-4" style={{ color: 'hsl(var(--muted))' }}>
             {isLogin ? "Don't have an account?" : "Already have one?"}{' '}
-            <button onClick={() => setIsLogin(!isLogin)} className="font-semibold" style={{ color: 'hsl(var(--accent))' }}>
+            <button type="button" onClick={() => setIsLogin(!isLogin)} className="font-semibold" style={{ color: 'hsl(var(--accent))' }}>
               {isLogin ? 'Sign up' : 'Sign in'}
             </button>
           </p>

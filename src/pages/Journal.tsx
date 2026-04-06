@@ -44,16 +44,67 @@ const Journal = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    loadEntries();
+    let active = true;
+
+    const bootstrap = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!active) return;
+
+      if (!session) {
+        setIsAuthenticated(false);
+        setEntries([]);
+        setLoading(false);
+        return;
+      }
+
+      setIsAuthenticated(true);
+      await loadEntries(session.user.id);
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!active) return;
+
+      if (!session) {
+        setIsAuthenticated(false);
+        setEntries([]);
+        setLoading(false);
+        return;
+      }
+
+      setIsAuthenticated(true);
+      void loadEntries(session.user.id);
+    });
+
+    void bootstrap();
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const loadEntries = async () => {
+  const loadEntries = async (userId?: string) => {
     setLoading(true);
+
+    let currentUserId = userId;
+    if (!currentUserId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      currentUserId = session?.user.id;
+    }
+
+    if (!currentUserId) {
+      setEntries([]);
+      setLoading(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from('journal_entries')
       .select('*')
+      .eq('user_id', currentUserId)
       .order('created_at', { ascending: false });
     if (error) {
       toast.error('Could not load journal entries');
@@ -69,20 +120,24 @@ const Journal = () => {
     if (!session) { toast.error('Please log in to save entries'); return; }
 
     setSaving(true);
-    const { error } = await supabase.from('journal_entries').insert({
-      user_id: session.user.id,
-      content: content.trim(),
-      mood: selectedMood,
-      prompt_used: currentPrompt,
-    });
+    const { data, error } = await supabase
+      .from('journal_entries')
+      .insert({
+        user_id: session.user.id,
+        content: content.trim(),
+        mood: selectedMood,
+        prompt_used: currentPrompt,
+      })
+      .select('*')
+      .single();
     if (error) {
       toast.error(error.message || 'Failed to save');
     } else {
+      setEntries(prev => [data as JournalEntry, ...prev]);
       toast.success('Entry saved 📝');
       setContent('');
       setSelectedMood(null);
       setCurrentPrompt(null);
-      loadEntries();
     }
     setSaving(false);
   };
@@ -92,7 +147,7 @@ const Journal = () => {
     if (error) {
       toast.error('Failed to delete');
     } else {
-      setEntries(entries.filter(e => e.id !== id));
+      setEntries(prev => prev.filter(e => e.id !== id));
       toast.success('Entry deleted');
     }
   };
@@ -119,6 +174,12 @@ const Journal = () => {
       {/* New Entry */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card-base space-y-4">
         <h3 className="font-display text-sm font-semibold" style={{ color: 'hsl(var(--text))' }}>New Entry</h3>
+
+        {!isAuthenticated && (
+          <div className="rounded-xl border px-4 py-3 text-sm" style={{ background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted))' }}>
+            Please sign in first to save private journal entries.
+          </div>
+        )}
 
         {/* Mood selector */}
         <div>
@@ -153,7 +214,7 @@ const Journal = () => {
           style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--text))' }} />
 
         <div className="flex items-center gap-3">
-          <button onClick={handleSave} disabled={saving || !content.trim()}
+          <button onClick={handleSave} disabled={saving || !content.trim() || !isAuthenticated}
             className="btn-3d text-sm px-6 py-2.5 flex items-center gap-2 disabled:opacity-40">
             {saving ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : 'Save Entry'}
           </button>

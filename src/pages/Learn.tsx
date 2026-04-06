@@ -42,7 +42,7 @@ const Learn = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [teachbackEval, setTeachbackEval] = useState<{ feedback: string; passed: boolean } | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
 
   const [history, setHistory] = useState<LearnHistory[]>(() => {
     try { return JSON.parse(localStorage.getItem('saathi-learn-history') || '[]'); } catch { return []; }
@@ -76,18 +76,23 @@ const Learn = () => {
     localStorage.setItem('saathi-learn-history', JSON.stringify(updated));
   };
 
-  const fetchWithTimeout = async (body: any): Promise<any> => {
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-learning', { body });
+  const fetchWithTimeout = async (body: any, requestId: number): Promise<any> => {
+    const invokePromise = supabase.functions.invoke('generate-learning', { body }).then(({ data, error }) => {
       if (error) throw new Error(error.message);
       return data;
-    } finally {
-      clearTimeout(timeout);
-      abortRef.current = null;
+    });
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('REQUEST_TIMEOUT')), TIMEOUT_MS);
+    });
+
+    const result = await Promise.race([invokePromise, timeoutPromise]);
+
+    if (requestId !== requestIdRef.current) {
+      throw new Error('STALE_REQUEST');
     }
+
+    return result;
   };
 
   const fetchLearningContent = useCallback(async () => {
@@ -97,10 +102,12 @@ const Learn = () => {
     }
     setLoading(true);
     setError(null);
+    const requestId = ++requestIdRef.current;
+
     try {
       const [learnData, conceptsData] = await Promise.all([
-        fetchWithTimeout({ subject, subtopic, mode: 'learn' }),
-        fetchWithTimeout({ subject, subtopic, mode: 'concepts' }),
+        fetchWithTimeout({ subject, subtopic, mode: 'learn' }, requestId),
+        fetchWithTimeout({ subject, subtopic, mode: 'concepts' }, requestId),
       ]);
 
       const learnResult = learnData?.result;
@@ -114,7 +121,9 @@ const Learn = () => {
           content: s.content || s.question || 'Question not available',
           options: Array.isArray(s.options) ? s.options : undefined,
           correctIndex: typeof s.correctIndex === 'number' ? s.correctIndex : 0,
-          explanation: s.explanation || '',
+          explanation: s.explanation || (Array.isArray(s.options) && s.options.length > 0
+            ? `The key idea here is: ${s.options[typeof s.correctIndex === 'number' ? s.correctIndex : 0] || 'focus on the highlighted answer'}.`
+            : 'Nice progress — keep building your understanding.'),
         }));
         setSteps(validSteps);
         setStarted(true);
@@ -124,13 +133,19 @@ const Learn = () => {
       }
       if (Array.isArray(conceptsResult)) setConcepts(conceptsResult);
     } catch (err: any) {
-      if (err.name === 'AbortError') {
+      if (err.message === 'STALE_REQUEST') {
+        return;
+      }
+
+      if (err.message === 'REQUEST_TIMEOUT') {
         setError('Request timed out. The AI is taking too long — please try again.');
       } else {
         setError(err.message || 'Failed to generate content. Please try again.');
       }
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [subject, subtopic]);
 
@@ -145,19 +160,23 @@ const Learn = () => {
     if (!teachbackText.trim()) return;
     setAnswered(true);
     setLoading(true);
+    const requestId = ++requestIdRef.current;
     try {
-      const data = await fetchWithTimeout({ subject, subtopic, mode: 'teachback-evaluate', studentExplanation: teachbackText });
+      const data = await fetchWithTimeout({ subject, subtopic, mode: 'teachback-evaluate', studentExplanation: teachbackText }, requestId);
       const result = data?.result;
       if (result && typeof result === 'object') {
         setTeachbackEval({ feedback: result.feedback || 'Good effort!', passed: result.passed ?? true });
       } else {
         setTeachbackEval({ feedback: 'Great thinking! Keep building on this understanding.', passed: true });
       }
-    } catch {
+    } catch (err: any) {
+      if (err.message === 'STALE_REQUEST') return;
       setTeachbackEval({ feedback: 'Great thinking! Keep building on this understanding.', passed: true });
     } finally {
-      setLoading(false);
-      setShowExplanation(true);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setShowExplanation(true);
+      }
     }
   };
 
@@ -181,6 +200,7 @@ const Learn = () => {
   };
 
   const resetLesson = () => {
+    requestIdRef.current += 1;
     setStarted(false);
     setCurrentStep(0);
     setSteps([]);
@@ -191,7 +211,7 @@ const Learn = () => {
     setTeachbackText('');
     setTeachbackEval(null);
     setError(null);
-    if (abortRef.current) abortRef.current.abort();
+    setLoading(false);
   };
 
   const incompleteLessons = history.filter(h => !h.completed);
@@ -375,14 +395,14 @@ const Learn = () => {
                     <CheckCircle size={16} />
                     <span>Concept learned! Memory scheduled for spaced review.</span>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
                     <button onClick={goToQuiz} className="btn-3d text-sm px-6 py-2.5">Take adaptive quiz →</button>
                     <button onClick={resetLesson} className="btn-3d-ghost text-sm px-4 py-2.5">Learn another topic</button>
                   </div>
                 </div>
               )}
 
-              {showExplanation && (step.explanation || teachbackEval) && step.type !== 'summary' && (
+              {showExplanation && (step.options || step.type === 'teachback') && step.type !== 'summary' && (
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 p-4 rounded-xl" style={{ background: 'hsl(var(--accent-soft))' }}>
                   {teachbackEval ? (
                     <>
@@ -395,7 +415,7 @@ const Learn = () => {
                       <p className="font-display text-sm" style={{ color: 'hsl(var(--text))' }}>{teachbackEval.feedback}</p>
                     </>
                   ) : (
-                    <p className="font-display text-sm" style={{ color: 'hsl(var(--text))' }}>{step.explanation}</p>
+                    <p className="font-display text-sm" style={{ color: 'hsl(var(--text))' }}>{step.explanation || 'Nice try — review the idea and keep going.'}</p>
                   )}
                   <button onClick={nextStep} className="btn-3d text-sm mt-3 px-6 py-2">Continue →</button>
                 </motion.div>
@@ -438,6 +458,23 @@ const Learn = () => {
             <p className="stat-number text-lg font-bold mt-1" style={{ color: 'hsl(var(--accent))' }}>{user.xp} XP</p>
             <p className="text-xs" style={{ color: 'hsl(var(--muted))' }}>Keep learning to level up</p>
           </div>
+        </div>
+      </div>
+
+      <div className="lg:hidden mt-4">
+        <div className="card-base">
+          <h4 className="font-display text-sm font-semibold mb-3" style={{ color: 'hsl(var(--text))' }}>🧠 Concept Map</h4>
+          {concepts.length > 0 ? concepts.map((c, i) => (
+            <div key={i} className="flex items-center gap-2 py-2 text-sm">
+              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px]" style={{
+                background: i < currentStep ? 'hsl(var(--accent))' : 'hsl(var(--surface2))',
+                color: i < currentStep ? 'hsl(var(--primary-foreground))' : 'hsl(var(--muted))',
+              }}>{i < currentStep ? '✓' : i + 1}</div>
+              <span style={{ color: i <= currentStep ? 'hsl(var(--text))' : 'hsl(var(--muted))' }}>{c}</span>
+            </div>
+          )) : (
+            <p className="text-xs" style={{ color: 'hsl(var(--muted))' }}>Concepts will appear here...</p>
+          )}
         </div>
       </div>
     </div>
