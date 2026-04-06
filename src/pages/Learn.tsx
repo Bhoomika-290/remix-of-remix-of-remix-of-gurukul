@@ -160,19 +160,23 @@ const Learn = () => {
     if (!teachbackText.trim()) return;
     setAnswered(true);
     setLoading(true);
+    const requestId = ++requestIdRef.current;
     try {
-      const data = await fetchWithTimeout({ subject, subtopic, mode: 'teachback-evaluate', studentExplanation: teachbackText });
+      const data = await fetchWithTimeout({ subject, subtopic, mode: 'teachback-evaluate', studentExplanation: teachbackText }, requestId);
       const result = data?.result;
       if (result && typeof result === 'object') {
         setTeachbackEval({ feedback: result.feedback || 'Good effort!', passed: result.passed ?? true });
       } else {
         setTeachbackEval({ feedback: 'Great thinking! Keep building on this understanding.', passed: true });
       }
-    } catch {
+    } catch (err: any) {
+      if (err.message === 'STALE_REQUEST') return;
       setTeachbackEval({ feedback: 'Great thinking! Keep building on this understanding.', passed: true });
     } finally {
-      setLoading(false);
-      setShowExplanation(true);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        setShowExplanation(true);
+      }
     }
   };
 
