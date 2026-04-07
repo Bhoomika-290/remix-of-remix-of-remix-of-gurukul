@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { Award, Flame, Target, BookOpen, Clock, TrendingUp, BarChart3, Brain, Trophy, Zap, Heart, Activity, Moon, Sun, Droplets, Dumbbell, PenLine, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownRight, FileText, Search, Star, Shield, Gamepad2, Users, Sparkles, Calendar, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -36,8 +37,9 @@ const moodLevels = [
 ];
 
 const Profile = () => {
-  const { user } = useApp();
+  const { user, setUser } = useApp();
   const { recoveryMode } = useTheme();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'subjects' | 'quests' | 'wellbeing'>('overview');
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
   const [moodRange, setMoodRange] = useState<'7d' | '30d'>('7d');
@@ -84,14 +86,7 @@ const Profile = () => {
   const learnHistory = JSON.parse(localStorage.getItem('saathi-learn-history') || '[]');
   const completedTopics = learnHistory.filter((h: any) => h.completed).length;
 
-  const leaderboard = [
-    { name: 'Arjun K.', xp: 520, streak: 12 },
-    { name: user.name || 'You', xp: user.xp, streak: user.streak },
-    { name: 'Priya S.', xp: 410, streak: 8 },
-    { name: 'Rohit M.', xp: 380, streak: 5 },
-    { name: 'Ananya P.', xp: 350, streak: 9 },
-  ].sort((a, b) => b.xp - a.xp);
-  const userRank = leaderboard.findIndex(p => p.name === (user.name || 'You')) + 1;
+  // Leaderboard is now on Social page - removed hardcoded data
 
   const moodData = useMemo(() => {
     const days = moodRange === '7d' ? 7 : 30;
@@ -293,6 +288,8 @@ const Profile = () => {
               <div className="h-full rounded-full" style={{ width: `${(user.xp / 500) * 100}%`, background: 'hsl(var(--accent))' }} />
             </div>
           </div>
+          <button onClick={() => { setUser(prev => ({ ...prev, onboardingComplete: false })); navigate('/onboarding'); }}
+            className="btn-3d-ghost text-xs px-3 py-1.5 mt-2 sm:mt-0 shrink-0">✏️ Edit Preferences</button>
         </div>
       </motion.div>
 
@@ -302,7 +299,7 @@ const Profile = () => {
           { icon: <Flame size={16}/>, value: user.streak, label: 'Streak', color: 'hsl(var(--warning))' },
           { icon: <Target size={16}/>, value: '78%', label: 'Accuracy', color: 'hsl(var(--accent))' },
           { icon: <BookOpen size={16}/>, value: completedTopics, label: 'Topics', color: 'hsl(var(--success))' },
-          { icon: <Trophy size={16}/>, value: `#${userRank}`, label: 'Rank', color: 'hsl(var(--warning))' },
+          { icon: <Trophy size={16}/>, value: `—`, label: 'Rank', color: 'hsl(var(--warning))' },
         ].map((stat, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
             className="card-base text-center py-2">
@@ -415,26 +412,12 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Leaderboard (hidden in recovery) */}
+            {/* Leaderboard - see Social page */}
             {!recoveryMode && (
-              <div className="card-base">
-                <h3 className="font-display text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}>
-                  <Trophy size={14} style={{ color: 'hsl(var(--warning))' }} /> Leaderboard
-                </h3>
-                <div className="flex flex-wrap gap-1">
-                  {leaderboard.map((p, i) => {
-                    const isUser = p.name === (user.name || 'You');
-                    return (
-                      <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 rounded-lg flex-1 min-w-[140px]" style={{ background: isUser ? 'hsl(var(--accent-soft))' : 'hsl(var(--surface2))' }}>
-                        <span className="stat-number text-xs font-bold" style={{ color: i === 0 ? 'hsl(var(--warning))' : 'hsl(var(--muted))' }}>
-                          {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}
-                        </span>
-                        <span className="text-xs font-medium truncate flex-1" style={{ color: 'hsl(var(--text))' }}>{p.name}</span>
-                        <span className="stat-number text-[10px] font-bold" style={{ color: 'hsl(var(--accent))' }}>{p.xp}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+              <div className="card-base text-center py-4">
+                <Trophy size={20} className="mx-auto mb-1" style={{ color: 'hsl(var(--warning))' }} />
+                <p className="text-xs font-medium" style={{ color: 'hsl(var(--text))' }}>See full leaderboard</p>
+                <p className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>Visit Study Together page for rankings</p>
               </div>
             )}
           </motion.div>
