@@ -1,7 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
+
+const streamSubjectMap: Record<string, string[]> = {
+  jee: ['Physics', 'Chemistry', 'Mathematics'],
+  neet: ['Physics', 'Chemistry', 'Biology'],
+  boards: ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'English', 'History', 'Geography', 'Economics'],
+  engineering: ['Computer Science', 'Electronics', 'Mechanical Engineering', 'Civil Engineering', 'Electrical Engineering', 'Engineering Mathematics', 'Data Structures & Algorithms', 'Operating Systems', 'DBMS', 'Discrete Mathematics'],
+  commerce: ['Accountancy', 'Business Studies', 'Economics', 'Mathematics'],
+  arts: ['History', 'Political Science', 'Geography', 'Psychology', 'Sociology'],
+  other: ['Physics', 'Chemistry', 'Mathematics', 'Biology', 'English', 'History', 'Geography', 'Economics', 'Computer Science'],
+};
 
 const steps = [
   {
@@ -12,6 +22,8 @@ const steps = [
       { label: '🩺 NEET', value: 'neet' },
       { label: '📚 Board Exams (10th/12th)', value: 'boards' },
       { label: '💻 Engineering Degree', value: 'engineering' },
+      { label: '💰 Commerce', value: 'commerce' },
+      { label: '🎨 Arts / Humanities', value: 'arts' },
       { label: '📖 Other / Custom', value: 'other' },
     ],
   },
@@ -19,10 +31,7 @@ const steps = [
     title: 'Pick your subjects',
     subtitle: 'Select from below or type your own',
     type: 'multi',
-    options: [
-      'Physics', 'Chemistry', 'Mathematics', 'Biology',
-      'English', 'History', 'Geography', 'Economics', 'Computer Science',
-    ],
+    options: [] as string[], // dynamically set based on stream
   },
   {
     title: 'When do you usually study?',
@@ -60,6 +69,16 @@ const Onboarding = () => {
   const navigate = useNavigate();
   const { setUser, user } = useApp();
 
+  // If already onboarded, redirect
+  useEffect(() => {
+    if (user.onboardingComplete && user.isLoggedIn) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, []);
+
+  // Get subject options based on selected stream
+  const subjectOptions = streamSubjectMap[examType] || streamSubjectMap['other'];
+
   const addCustomSubject = () => {
     const trimmed = customSubject.trim();
     if (trimmed && !subjects.includes(trimmed)) {
@@ -69,7 +88,11 @@ const Onboarding = () => {
   };
 
   const handleSelect = (value: string) => {
-    if (step === 0) setExamType(value);
+    if (step === 0) {
+      setExamType(value);
+      // Reset subjects when stream changes
+      setSubjects([]);
+    }
     if (step === 2) setStudyTime(value);
     if (step === 3) setFeeling(value);
   };
@@ -99,13 +122,14 @@ const Onboarding = () => {
     }
   };
 
-  // Final "ready" screen
   if (step === 4) return null;
 
   const currentStep = steps[step];
+  // For step 1, use dynamic options
+  const displayOptions = step === 1 ? subjectOptions : currentStep.options;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'hsl(var(--bg))' }}>
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6" style={{ background: 'hsl(var(--bg))' }}>
       <div className="w-full max-w-lg">
         {/* Progress */}
         <div className="flex gap-2 mb-8">
@@ -123,25 +147,27 @@ const Onboarding = () => {
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.3 }}
           >
-            <h2 className="font-display text-2xl font-bold mb-2" style={{ color: 'hsl(var(--text))' }}>
+            <h2 className="font-display text-xl sm:text-2xl font-bold mb-2" style={{ color: 'hsl(var(--text))' }}>
               {currentStep.title}
             </h2>
-            {'subtitle' in currentStep && (
-              <p className="text-sm mb-6" style={{ color: 'hsl(var(--muted))' }}>{currentStep.subtitle as string}</p>
+            {'subtitle' in currentStep && currentStep.subtitle && (
+              <p className="text-sm mb-6" style={{ color: 'hsl(var(--muted))' }}>
+                {step === 1 && examType ? `Subjects for ${steps[0].options.find(o => typeof o !== 'string' && o.value === examType)?.label || examType}:` : currentStep.subtitle as string}
+              </p>
             )}
 
-            <div className={`grid gap-3 mb-8 ${currentStep.type === 'multi' ? 'grid-cols-2 sm:grid-cols-3' : ''}`}>
-              {currentStep.options.map((opt, i) => {
+            <div className={`grid gap-3 mb-8 ${step === 1 ? 'grid-cols-2 sm:grid-cols-3' : ''}`}>
+              {(displayOptions as any[]).map((opt, i) => {
                 const value = typeof opt === 'string' ? opt : opt.value;
                 const label = typeof opt === 'string' ? opt : opt.label;
-                const selected = currentStep.type === 'multi'
+                const selected = step === 1
                   ? subjects.includes(value)
                   : currentSelection === value;
 
                 return (
                   <button
                     key={i}
-                    onClick={() => currentStep.type === 'multi' ? toggleSubject(value) : handleSelect(value)}
+                    onClick={() => step === 1 ? toggleSubject(value) : handleSelect(value)}
                     className="answer-tile text-left text-sm font-medium transition-all"
                     style={{
                       borderColor: selected ? 'hsl(var(--accent))' : 'hsl(var(--border))',
@@ -171,6 +197,22 @@ const Onboarding = () => {
                   className="btn-3d px-4 py-2.5 text-sm font-medium disabled:opacity-40">
                   Add
                 </button>
+              </div>
+            )}
+
+            {/* Show selected custom subjects */}
+            {step === 1 && subjects.filter(s => !subjectOptions.includes(s)).length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs font-medium mb-2" style={{ color: 'hsl(var(--muted))' }}>Custom subjects:</p>
+                <div className="flex flex-wrap gap-2">
+                  {subjects.filter(s => !subjectOptions.includes(s)).map((s, i) => (
+                    <span key={i} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5"
+                      style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))', border: '1px solid hsl(var(--accent))' }}>
+                      {s}
+                      <button onClick={() => setSubjects(prev => prev.filter(x => x !== s))} className="text-xs opacity-60 hover:opacity-100">✕</button>
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
 
