@@ -412,26 +412,12 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Leaderboard (hidden in recovery) */}
+            {/* Leaderboard - see Social page */}
             {!recoveryMode && (
-              <div className="card-base">
-                <h3 className="font-display text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}>
-                  <Trophy size={14} style={{ color: 'hsl(var(--warning))' }} /> Leaderboard
-                </h3>
-                <div className="flex flex-wrap gap-1">
-                  {leaderboard.map((p, i) => {
-                    const isUser = p.name === (user.name || 'You');
-                    return (
-                      <div key={i} className="flex items-center gap-2 py-1.5 px-2.5 rounded-lg flex-1 min-w-[140px]" style={{ background: isUser ? 'hsl(var(--accent-soft))' : 'hsl(var(--surface2))' }}>
-                        <span className="stat-number text-xs font-bold" style={{ color: i === 0 ? 'hsl(var(--warning))' : 'hsl(var(--muted))' }}>
-                          {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`}
-                        </span>
-                        <span className="text-xs font-medium truncate flex-1" style={{ color: 'hsl(var(--text))' }}>{p.name}</span>
-                        <span className="stat-number text-[10px] font-bold" style={{ color: 'hsl(var(--accent))' }}>{p.xp}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+              <div className="card-base text-center py-4">
+                <Trophy size={20} className="mx-auto mb-1" style={{ color: 'hsl(var(--warning))' }} />
+                <p className="text-xs font-medium" style={{ color: 'hsl(var(--text))' }}>See full leaderboard</p>
+                <p className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>Visit Study Together page for rankings</p>
               </div>
             )}
           </motion.div>
