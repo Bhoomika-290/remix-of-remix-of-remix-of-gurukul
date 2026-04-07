@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { Award, Flame, Target, BookOpen, Clock, TrendingUp, BarChart3, Brain, Trophy, Zap, Heart, Activity, Moon, Sun, Droplets, Dumbbell, PenLine, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownRight, FileText, Search, Star, Shield, Gamepad2, Users, Sparkles, Calendar, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
