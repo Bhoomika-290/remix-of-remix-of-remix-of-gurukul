@@ -299,7 +299,7 @@ const Profile = () => {
           { icon: <Flame size={16}/>, value: user.streak, label: 'Streak', color: 'hsl(var(--warning))' },
           { icon: <Target size={16}/>, value: '78%', label: 'Accuracy', color: 'hsl(var(--accent))' },
           { icon: <BookOpen size={16}/>, value: completedTopics, label: 'Topics', color: 'hsl(var(--success))' },
-          { icon: <Trophy size={16}/>, value: `#${userRank}`, label: 'Rank', color: 'hsl(var(--warning))' },
+          { icon: <Trophy size={16}/>, value: `—`, label: 'Rank', color: 'hsl(var(--warning))' },
         ].map((stat, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
             className="card-base text-center py-2">
