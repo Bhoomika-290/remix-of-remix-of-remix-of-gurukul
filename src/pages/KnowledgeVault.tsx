@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, BookOpen, FileText, Video, ClipboardList, ChevronRight, Home, Download, Play, Filter, Loader2, Globe, Upload, X, ExternalLink } from 'lucide-react';
+import { Search, BookOpen, FileText, Video, ClipboardList, ChevronRight, Home, Download, Play, Filter, Loader2, Globe, Upload, X, ExternalLink, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { toast } from 'sonner';
@@ -39,14 +39,29 @@ const KnowledgeVault = () => {
   const [yearFilter, setYearFilter] = useState<number | null>(null);
   const [materialCounts, setMaterialCounts] = useState<Record<string, { pdf: number; video: number; pyq: number }>>({});
   const [recentMaterials, setRecentMaterials] = useState<(Material & { subjectName?: string })[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  // Upload modal state (works from anywhere)
   const [showUpload, setShowUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadType, setUploadType] = useState<'pdf' | 'video' | 'pyq'>('pdf');
   const [uploadUrl, setUploadUrl] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Upload selector state (for uploading from main page)
+  const [uploadStreamId, setUploadStreamId] = useState<string | null>(null);
+  const [uploadSubjectId, setUploadSubjectId] = useState<string | null>(null);
+  const [uploadTopicId, setUploadTopicId] = useState<string | null>(null);
+  const [uploadSubTopicId, setUploadSubTopicId] = useState<string | null>(null);
+  const [uploadSubjects, setUploadSubjects] = useState<Subject[]>([]);
+  const [uploadTopics, setUploadTopics] = useState<Topic[]>([]);
+  const [uploadSubTopics, setUploadSubTopics] = useState<SubTopic[]>([]);
+
+  // All topics/subtopics for mapping
+  const [allTopics, setAllTopics] = useState<Topic[]>([]);
+  const [allSubTopics, setAllSubTopics] = useState<SubTopic[]>([]);
 
   const userStreamName = useMemo(() => {
     const map: Record<string, string> = {
@@ -61,19 +76,23 @@ const KnowledgeVault = () => {
     const load = async () => {
       setLoading(true);
       setError(null);
-      const [{ data: st, error: streamsError }, { data: subs, error: subjectsError }, { data: allMats, error: materialsError }] = await Promise.all([
+      const [{ data: st, error: e1 }, { data: subs, error: e2 }, { data: allMats, error: e3 }, { data: allT }, { data: allST }] = await Promise.all([
         supabase.from('streams').select('*').order('name'),
         supabase.from('subjects').select('*').order('name'),
         supabase.from('materials').select('*').order('created_at', { ascending: false }),
+        supabase.from('topics').select('*').order('name'),
+        supabase.from('sub_topics').select('*').order('name'),
       ]);
 
-      if (streamsError || subjectsError || materialsError) {
+      if (e1 || e2 || e3) {
         setError('Could not load the knowledge vault right now. Please try again.');
       }
 
       setStreams((st as Stream[]) || []);
       setSubjects((subs as Subject[]) || []);
       setAllMaterials((allMats as Material[]) || []);
+      setAllTopics((allT as Topic[]) || []);
+      setAllSubTopics((allST as SubTopic[]) || []);
 
       const userStream = (st as Stream[])?.find(s => s.name === userStreamName);
       if (userStream) setSelectedStreamId(userStream.id);
@@ -84,46 +103,39 @@ const KnowledgeVault = () => {
 
   // Compute material counts per subject and recent materials
   useEffect(() => {
-    if (!subjects.length || !allMaterials.length) return;
-    const loadCounts = async () => {
-      // Get all sub_topics -> topics -> subjects mapping
-      const { data: allTopics } = await supabase.from('topics').select('id, subject_id');
-      const { data: allSubTopics } = await supabase.from('sub_topics').select('id, topic_id');
-      if (!allTopics || !allSubTopics) return;
+    if (!subjects.length || !allMaterials.length || !allTopics.length || !allSubTopics.length) return;
 
-      const topicToSubject: Record<string, string> = {};
-      allTopics.forEach((t: any) => { topicToSubject[t.id] = t.subject_id; });
-      const subTopicToSubject: Record<string, string> = {};
-      allSubTopics.forEach((st: any) => { subTopicToSubject[st.id] = topicToSubject[st.topic_id] || ''; });
+    const topicToSubject: Record<string, string> = {};
+    allTopics.forEach(t => { topicToSubject[t.id] = t.subject_id; });
+    const subTopicToSubject: Record<string, string> = {};
+    allSubTopics.forEach(st => { subTopicToSubject[st.id] = topicToSubject[st.topic_id] || ''; });
 
-      const counts: Record<string, { pdf: number; video: number; pyq: number }> = {};
-      allMaterials.forEach(m => {
-        const subjId = subTopicToSubject[m.sub_topic_id] || '';
-        if (!subjId) return;
-        if (!counts[subjId]) counts[subjId] = { pdf: 0, video: 0, pyq: 0 };
-        if (m.type === 'pdf') counts[subjId].pdf++;
-        else if (m.type === 'video') counts[subjId].video++;
-        else if (m.type === 'pyq') counts[subjId].pyq++;
+    const counts: Record<string, { pdf: number; video: number; pyq: number }> = {};
+    allMaterials.forEach(m => {
+      const subjId = subTopicToSubject[m.sub_topic_id] || '';
+      if (!subjId) return;
+      if (!counts[subjId]) counts[subjId] = { pdf: 0, video: 0, pyq: 0 };
+      if (m.type === 'pdf') counts[subjId].pdf++;
+      else if (m.type === 'video') counts[subjId].video++;
+      else if (m.type === 'pyq') counts[subjId].pyq++;
+    });
+    setMaterialCounts(counts);
+
+    // Recent materials for user's stream
+    const streamSubjectIds = subjects.filter(s => s.stream_id === selectedStreamId).map(s => s.id);
+    const recent = allMaterials
+      .filter(m => {
+        const subjId = subTopicToSubject[m.sub_topic_id];
+        return subjId && streamSubjectIds.includes(subjId);
+      })
+      .slice(0, 6)
+      .map(m => {
+        const subjId = subTopicToSubject[m.sub_topic_id];
+        const subj = subjects.find(s => s.id === subjId);
+        return { ...m, subjectName: subj?.name || '' };
       });
-      setMaterialCounts(counts);
-
-      // Recent materials for user's stream
-      const streamSubjectIds = subjects.filter(s => s.stream_id === selectedStreamId).map(s => s.id);
-      const recent = allMaterials
-        .filter(m => {
-          const subjId = subTopicToSubject[m.sub_topic_id];
-          return subjId && streamSubjectIds.includes(subjId);
-        })
-        .slice(0, 6)
-        .map(m => {
-          const subjId = subTopicToSubject[m.sub_topic_id];
-          const subj = subjects.find(s => s.id === subjId);
-          return { ...m, subjectName: subj?.name || '' };
-        });
-      setRecentMaterials(recent);
-    };
-    loadCounts();
-  }, [subjects, allMaterials, selectedStreamId]);
+    setRecentMaterials(recent);
+  }, [subjects, allMaterials, selectedStreamId, allTopics, allSubTopics]);
 
   const filteredSubjects = useMemo(() => {
     if (showExplore || !selectedStreamId) return subjects;
@@ -157,7 +169,7 @@ const KnowledgeVault = () => {
     setLoading(false);
   };
 
-  // Search across materials, topics, sub_topics
+  // Search across materials
   const handleSearch = useCallback(async (q: string) => {
     if (!q.trim()) { setSearchResults([]); return; }
     setSearching(true);
@@ -195,16 +207,76 @@ const KnowledgeVault = () => {
     }
   };
 
+  // Upload modal helpers - load cascading dropdowns
+  const handleUploadStreamChange = (streamId: string) => {
+    setUploadStreamId(streamId);
+    setUploadSubjectId(null);
+    setUploadTopicId(null);
+    setUploadSubTopicId(null);
+    setUploadSubjects(subjects.filter(s => s.stream_id === streamId));
+    setUploadTopics([]);
+    setUploadSubTopics([]);
+  };
+
+  const handleUploadSubjectChange = async (subjectId: string) => {
+    setUploadSubjectId(subjectId);
+    setUploadTopicId(null);
+    setUploadSubTopicId(null);
+    setUploadSubTopics([]);
+    const filtered = allTopics.filter(t => t.subject_id === subjectId);
+    setUploadTopics(filtered);
+  };
+
+  const handleUploadTopicChange = (topicId: string) => {
+    setUploadTopicId(topicId);
+    setUploadSubTopicId(null);
+    const filtered = allSubTopics.filter(st => st.topic_id === topicId);
+    setUploadSubTopics(filtered);
+  };
+
+  const openUploadModal = () => {
+    // Pre-fill if we're inside a sub-topic
+    if (selectedSubTopic && selectedTopic && selectedSubject) {
+      setUploadStreamId(selectedSubject.stream_id);
+      setUploadSubjects(subjects.filter(s => s.stream_id === selectedSubject.stream_id));
+      setUploadSubjectId(selectedSubject.id);
+      setUploadTopics(allTopics.filter(t => t.subject_id === selectedSubject.id));
+      setUploadTopicId(selectedTopic.id);
+      setUploadSubTopics(allSubTopics.filter(st => st.topic_id === selectedTopic.id));
+      setUploadSubTopicId(selectedSubTopic.id);
+    } else {
+      // Start fresh
+      if (selectedStreamId) {
+        setUploadStreamId(selectedStreamId);
+        setUploadSubjects(subjects.filter(s => s.stream_id === selectedStreamId));
+      } else {
+        setUploadStreamId(null);
+        setUploadSubjects([]);
+      }
+      setUploadSubjectId(null);
+      setUploadTopicId(null);
+      setUploadSubTopicId(null);
+      setUploadTopics([]);
+      setUploadSubTopics([]);
+    }
+    setUploadTitle('');
+    setUploadUrl('');
+    setUploadFile(null);
+    setUploadType('pdf');
+    setShowUpload(true);
+  };
+
   const handleUpload = async () => {
     if (!uploadTitle.trim()) { toast.error('Enter a title'); return; }
-    if (!selectedSubTopic) { toast.error('Navigate to a sub-topic first'); return; }
+
+    const targetSubTopicId = uploadSubTopicId;
+    if (!targetSubTopicId) { toast.error('Select a sub-topic to upload to'); return; }
 
     setUploading(true);
     try {
       let url = uploadUrl;
 
       if (uploadFile) {
-        const ext = uploadFile.name.split('.').pop();
         const path = `${Date.now()}-${uploadFile.name}`;
         const { error: uploadError } = await supabase.storage.from('study-materials').upload(path, uploadFile);
         if (uploadError) throw uploadError;
@@ -224,22 +296,22 @@ const KnowledgeVault = () => {
         title: uploadTitle.trim(),
         type: uploadType,
         url,
-        sub_topic_id: selectedSubTopic.id,
+        sub_topic_id: targetSubTopicId,
         file_size: uploadFile ? `${(uploadFile.size / 1024 / 1024).toFixed(1)} MB` : null,
       });
       if (error) throw error;
 
       toast.success('Material uploaded!');
       setShowUpload(false);
-      setUploadTitle('');
-      setUploadUrl('');
-      setUploadFile(null);
-      await Promise.all([
-        loadMaterials(selectedSubTopic.id),
-        supabase.from('materials').select('*').order('created_at', { ascending: false }).then(({ data }) => {
-          setAllMaterials((data as Material[]) || []);
-        }),
-      ]);
+
+      // Refresh materials if we're viewing the same sub-topic
+      if (level === 'materials' && selectedSubTopic?.id === targetSubTopicId) {
+        await loadMaterials(targetSubTopicId);
+      }
+
+      // Refresh all materials for counts
+      const { data: refreshed } = await supabase.from('materials').select('*').order('created_at', { ascending: false });
+      setAllMaterials((refreshed as Material[]) || []);
     } catch (err: any) {
       toast.error(err.message || 'Upload failed');
     } finally {
@@ -273,27 +345,37 @@ const KnowledgeVault = () => {
     );
   }
 
+  const selectClass = "w-full px-3 py-2.5 rounded-lg border text-sm outline-none appearance-none";
+  const selectStyle = { background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--text))' };
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 flex-wrap text-xs">
-        {breadcrumbs.map((bc, i) => (
-          <span key={i} className="flex items-center gap-1.5">
-            {i > 0 && <ChevronRight size={12} style={{ color: 'hsl(var(--muted))' }} />}
-            <button
-              onClick={() => {
-                if (bc.level === 'subjects') navigateTo('subjects');
-                else if (bc.level === 'topics' && selectedSubject) navigateTo('topics', selectedSubject);
-                else if (bc.level === 'sub_topics' && selectedTopic) navigateTo('sub_topics', selectedTopic);
-              }}
-              className="font-medium hover:underline"
-              style={{ color: i === breadcrumbs.length - 1 ? 'hsl(var(--text))' : 'hsl(var(--accent))' }}
-            >
-              {i === 0 && <Home size={12} className="inline mr-1" />}
-              {bc.label}
-            </button>
-          </span>
-        ))}
+      {/* Breadcrumb + Upload button */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 flex-wrap text-xs min-w-0">
+          {breadcrumbs.map((bc, i) => (
+            <span key={i} className="flex items-center gap-1.5">
+              {i > 0 && <ChevronRight size={12} style={{ color: 'hsl(var(--muted))' }} />}
+              <button
+                onClick={() => {
+                  if (bc.level === 'subjects') navigateTo('subjects');
+                  else if (bc.level === 'topics' && selectedSubject) navigateTo('topics', selectedSubject);
+                  else if (bc.level === 'sub_topics' && selectedTopic) navigateTo('sub_topics', selectedTopic);
+                }}
+                className="font-medium hover:underline"
+                style={{ color: i === breadcrumbs.length - 1 ? 'hsl(var(--text))' : 'hsl(var(--accent))' }}
+              >
+                {i === 0 && <Home size={12} className="inline mr-1" />}
+                {bc.label}
+              </button>
+            </span>
+          ))}
+        </div>
+        <button onClick={openUploadModal}
+          className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all"
+          style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>
+          <Upload size={12} /> Upload
+        </button>
       </div>
 
       {/* Search */}
@@ -334,6 +416,88 @@ const KnowledgeVault = () => {
           <span>{error}</span>
           <button onClick={() => window.location.reload()} className="text-xs font-semibold" style={{ color: 'hsl(var(--accent))' }}>Retry</button>
         </div>
+      )}
+
+      {/* Upload Modal */}
+      {showUpload && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-md rounded-2xl border p-5 space-y-3 max-h-[90vh] overflow-y-auto"
+            style={{ background: 'hsl(var(--surface))', borderColor: 'hsl(var(--border))' }}>
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold" style={{ color: 'hsl(var(--text))' }}>📤 Upload Material</h4>
+              <button onClick={() => setShowUpload(false)}><X size={16} style={{ color: 'hsl(var(--muted))' }} /></button>
+            </div>
+
+            {/* Stream selector */}
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted))' }}>Stream</label>
+              <select value={uploadStreamId || ''} onChange={e => handleUploadStreamChange(e.target.value)} className={selectClass} style={selectStyle}>
+                <option value="">Select stream...</option>
+                {streams.map(s => <option key={s.id} value={s.id}>{s.icon} {s.name}</option>)}
+              </select>
+            </div>
+
+            {/* Subject selector */}
+            {uploadStreamId && (
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted))' }}>Subject</label>
+                <select value={uploadSubjectId || ''} onChange={e => handleUploadSubjectChange(e.target.value)} className={selectClass} style={selectStyle}>
+                  <option value="">Select subject...</option>
+                  {uploadSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Topic selector */}
+            {uploadSubjectId && (
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted))' }}>Topic</label>
+                <select value={uploadTopicId || ''} onChange={e => handleUploadTopicChange(e.target.value)} className={selectClass} style={selectStyle}>
+                  <option value="">Select topic...</option>
+                  {uploadTopics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
+            )}
+
+            {/* Sub-topic selector */}
+            {uploadTopicId && (
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted))' }}>Sub-topic</label>
+                <select value={uploadSubTopicId || ''} onChange={e => setUploadSubTopicId(e.target.value)} className={selectClass} style={selectStyle}>
+                  <option value="">Select sub-topic...</option>
+                  {uploadSubTopics.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+                </select>
+              </div>
+            )}
+
+            <input value={uploadTitle} onChange={e => setUploadTitle(e.target.value)} placeholder="Material title"
+              className="w-full px-3 py-2.5 rounded-lg border text-sm outline-none" style={{ background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--text))' }} />
+
+            <div className="flex flex-wrap gap-2">
+              {(['pdf', 'video', 'pyq'] as const).map(t => (
+                <button key={t} onClick={() => setUploadType(t)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+                  style={{ background: uploadType === t ? 'hsl(var(--accent-soft))' : 'transparent', borderColor: uploadType === t ? 'hsl(var(--accent))' : 'hsl(var(--border))', color: uploadType === t ? 'hsl(var(--accent))' : 'hsl(var(--text))' }}>
+                  {typeEmoji[t]} {typeLabels[t]}
+                </button>
+              ))}
+            </div>
+
+            <input value={uploadUrl} onChange={e => setUploadUrl(e.target.value)} placeholder="Paste URL (YouTube, Google Drive, etc.)"
+              className="w-full px-3 py-2.5 rounded-lg border text-sm outline-none" style={{ background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--text))' }} />
+            <div className="text-center text-[10px]" style={{ color: 'hsl(var(--muted))' }}>— or —</div>
+            <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.mp4,.mov,.webm" className="hidden" onChange={e => setUploadFile(e.target.files?.[0] || null)} />
+            <button onClick={() => fileInputRef.current?.click()}
+              className="w-full py-3 rounded-xl border-2 border-dashed text-sm transition-all hover:border-accent"
+              style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted))' }}>
+              {uploadFile ? `📎 ${uploadFile.name}` : 'Click to upload a file'}
+            </button>
+            <button onClick={handleUpload} disabled={uploading || !uploadTitle.trim() || !uploadSubTopicId}
+              className="btn-3d w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-40">
+              {uploading ? <><Loader2 size={14} className="animate-spin" /> Uploading...</> : <><Upload size={14} /> Upload</>}
+            </button>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Stream selector at subject level */}
@@ -494,49 +658,6 @@ const KnowledgeVault = () => {
         {/* ======= MATERIALS VIEW ======= */}
         {level === 'materials' && (
           <motion.div key="materials" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-3">
-            {/* Upload button */}
-            <div className="flex justify-end">
-              <button onClick={() => setShowUpload(!showUpload)}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all"
-                style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>
-                <Upload size={12} /> Upload Material
-              </button>
-            </div>
-
-            {/* Upload form */}
-            {showUpload && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="card-base space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-semibold" style={{ color: 'hsl(var(--text))' }}>Upload to: {selectedSubTopic?.name}</h4>
-                  <button onClick={() => setShowUpload(false)}><X size={16} style={{ color: 'hsl(var(--muted))' }} /></button>
-                </div>
-                <input value={uploadTitle} onChange={e => setUploadTitle(e.target.value)} placeholder="Material title"
-                  className="w-full px-3 py-2 rounded-lg border border-border text-sm outline-none" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--text))' }} />
-                <div className="flex flex-wrap gap-2">
-                  {(['pdf', 'video', 'pyq'] as const).map(t => (
-                    <button key={t} onClick={() => setUploadType(t)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
-                      style={{ background: uploadType === t ? 'hsl(var(--accent-soft))' : 'transparent', borderColor: uploadType === t ? 'hsl(var(--accent))' : 'hsl(var(--border))', color: uploadType === t ? 'hsl(var(--accent))' : 'hsl(var(--text))' }}>
-                      {typeEmoji[t]} {typeLabels[t]}
-                    </button>
-                  ))}
-                </div>
-                <input value={uploadUrl} onChange={e => setUploadUrl(e.target.value)} placeholder="Paste URL (YouTube, Google Drive, etc.)"
-                  className="w-full px-3 py-2 rounded-lg border border-border text-sm outline-none" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--text))' }} />
-                <div className="text-center text-[10px]" style={{ color: 'hsl(var(--muted))' }}>— or —</div>
-                <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.mp4,.mov,.webm" className="hidden" onChange={e => setUploadFile(e.target.files?.[0] || null)} />
-                <button onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-3 rounded-xl border-2 border-dashed text-sm transition-all hover:border-accent"
-                  style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted))' }}>
-                  {uploadFile ? `📎 ${uploadFile.name}` : 'Click to upload a file'}
-                </button>
-                <button onClick={handleUpload} disabled={uploading || !uploadTitle.trim()}
-                  className="btn-3d w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-40">
-                  {uploading ? <><Loader2 size={14} className="animate-spin" /> Uploading...</> : <><Upload size={14} /> Upload</>}
-                </button>
-              </motion.div>
-            )}
-
             {/* Tabs */}
             <div className="flex flex-wrap gap-1 p-1 rounded-xl" style={{ background: 'hsl(var(--surface2))' }}>
               {(['pdf', 'video', 'pyq'] as const).map(tab => {
@@ -584,7 +705,7 @@ const KnowledgeVault = () => {
               <div className="text-center py-12 card-base">
                 <div className="text-3xl mb-2">{typeEmoji[activeTab]}</div>
                 <p className="text-sm" style={{ color: 'hsl(var(--muted))' }}>No {typeLabels[activeTab].toLowerCase()} available yet</p>
-                <p className="text-xs mt-1" style={{ color: 'hsl(var(--muted))' }}>Upload the first one!</p>
+                <button onClick={openUploadModal} className="text-xs font-medium mt-2 underline" style={{ color: 'hsl(var(--accent))' }}>Upload the first one!</button>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
