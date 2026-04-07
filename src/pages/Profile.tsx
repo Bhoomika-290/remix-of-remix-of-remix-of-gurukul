@@ -37,8 +37,9 @@ const moodLevels = [
 ];
 
 const Profile = () => {
-  const { user } = useApp();
+  const { user, setUser } = useApp();
   const { recoveryMode } = useTheme();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'subjects' | 'quests' | 'wellbeing'>('overview');
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
   const [moodRange, setMoodRange] = useState<'7d' | '30d'>('7d');
