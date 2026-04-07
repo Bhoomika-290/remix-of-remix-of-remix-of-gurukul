@@ -152,7 +152,7 @@ const Onboarding = () => {
             </h2>
             {'subtitle' in currentStep && currentStep.subtitle && (
               <p className="text-sm mb-6" style={{ color: 'hsl(var(--muted))' }}>
-                {step === 1 && examType ? `Subjects for ${steps[0].options.find(o => typeof o !== 'string' && o.value === examType)?.label || examType}:` : currentStep.subtitle as string}
+                {step === 1 && examType ? `Subjects for ${(steps[0].options as {label:string;value:string}[]).find(o => o.value === examType)?.label || examType}:` : currentStep.subtitle as string}
               </p>
             )}
 
