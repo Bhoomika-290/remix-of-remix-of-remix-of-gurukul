@@ -3,7 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { toast } from 'sonner';
-import { Timer, Users, ArrowLeft, Search, Plus, Trophy, Clock, Zap, Heart, AlertCircle, TrendingUp } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Timer, Users, ArrowLeft, Search, Plus, Trophy, Clock, Zap, Heart, AlertCircle, TrendingUp, Loader2 } from 'lucide-react';
+
+interface LeaderboardEntry {
+  name: string;
+  xp: number;
+  streak: number;
+  isCurrentUser: boolean;
+}
 
 const Social = () => {
   const { user } = useApp();
@@ -16,6 +24,12 @@ const Social = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'all' | 'mine' | 'trending'>('all');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Leaderboard state
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+  const [leaderboardFilter, setLeaderboardFilter] = useState<'week' | 'month' | 'all'>('all');
+  const [userRank, setUserRank] = useState<number | null>(null);
 
   const subs = user.subjects.length > 0 ? user.subjects : ['Physics', 'Chemistry', 'Mathematics'];
 
@@ -52,6 +66,51 @@ const Social = () => {
     if (activeTab === 'trending') return r.users > 5;
     return true;
   });
+
+  // Load leaderboard from real profiles
+  useEffect(() => {
+    const loadLeaderboard = async () => {
+      setLeaderboardLoading(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const currentUserId = session?.user?.id;
+
+        const { data: profiles, error } = await supabase
+          .from('profiles')
+          .select('id, name, xp, streak')
+          .order('xp', { ascending: false })
+          .limit(50);
+
+        if (error) throw error;
+
+        if (!profiles || profiles.length === 0) {
+          setLeaderboard([]);
+          setUserRank(null);
+          setLeaderboardLoading(false);
+          return;
+        }
+
+        const entries: LeaderboardEntry[] = profiles.map(p => ({
+          name: p.name || 'Student',
+          xp: p.xp || 0,
+          streak: p.streak || 0,
+          isCurrentUser: p.id === currentUserId,
+        }));
+
+        // Filter out zero-XP users
+        const activeEntries = entries.filter(e => e.xp > 0);
+        setLeaderboard(activeEntries);
+
+        const rank = activeEntries.findIndex(e => e.isCurrentUser);
+        setUserRank(rank >= 0 ? rank + 1 : null);
+      } catch {
+        setLeaderboard([]);
+      } finally {
+        setLeaderboardLoading(false);
+      }
+    };
+    loadLeaderboard();
+  }, [leaderboardFilter]);
 
   useEffect(() => {
     if (pomodoroActive && pomodoroTime > 0) {
@@ -248,32 +307,62 @@ const Social = () => {
                 </div>
               </div>
               <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-display font-bold"
-                style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>A</div>
+                style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>?</div>
             </div>
-            <p className="text-sm text-center" style={{ color: 'hsl(var(--text-secondary))' }}>You and Arjun both completed 3 sessions this week 🔥</p>
-            <button className="btn-3d-ghost w-full text-xs py-2 mt-3" onClick={() => toast('Nudge sent!')}>Send nudge 👋</button>
+            <p className="text-sm text-center" style={{ color: 'hsl(var(--muted))' }}>Find an accountability partner by joining study rooms!</p>
+            <button className="btn-3d-ghost w-full text-xs py-2 mt-3" onClick={() => toast('Join a study room to pair up!')}>Find partner 👋</button>
           </div>
 
           <div className="card-base">
-            <h3 className="font-display text-base font-semibold mb-3 flex items-center gap-2" style={{ color: 'hsl(var(--text))' }}>
-              <Trophy size={18} style={{ color: 'hsl(var(--warning))' }} /> Top Studiers This Week
-            </h3>
-            {[
-              { name: 'Arjun K.', hours: '18h', rank: 1 },
-              { name: user.name || 'You', hours: '12h', rank: 2 },
-              { name: 'Priya S.', hours: '10h', rank: 3 },
-              { name: 'Rohit M.', hours: '8h', rank: 4 },
-              { name: 'Ananya P.', hours: '6h', rank: 5 },
-            ].map((p, i) => {
-              const isUser = p.name === (user.name || 'You');
-              return (
-                <div key={i} className="flex items-center gap-3 py-2 px-2 rounded-lg" style={{ background: isUser ? 'hsl(var(--accent-soft))' : 'transparent' }}>
-                  <span className="w-5 text-center stat-number text-xs" style={{ color: i === 0 ? 'hsl(var(--warning))' : 'hsl(var(--muted))' }}>{i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${p.rank}`}</span>
-                  <span className="flex-1 text-sm" style={{ color: 'hsl(var(--text))' }}>{p.name}</span>
-                  <span className="stat-number text-xs" style={{ color: 'hsl(var(--accent))' }}>{p.hours}</span>
-                </div>
-              );
-            })}
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-display text-base font-semibold flex items-center gap-2" style={{ color: 'hsl(var(--text))' }}>
+                <Trophy size={18} style={{ color: 'hsl(var(--warning))' }} /> Leaderboard
+              </h3>
+              <div className="flex gap-1 p-0.5 rounded-lg" style={{ background: 'hsl(var(--surface2))' }}>
+                {(['week', 'month', 'all'] as const).map(f => (
+                  <button key={f} onClick={() => setLeaderboardFilter(f)}
+                    className="px-2 py-1 rounded text-[10px] font-medium transition-all capitalize"
+                    style={{
+                      background: leaderboardFilter === f ? 'hsl(var(--surface))' : 'transparent',
+                      color: leaderboardFilter === f ? 'hsl(var(--text))' : 'hsl(var(--muted))',
+                    }}>
+                    {f === 'week' ? 'Week' : f === 'month' ? 'Month' : 'All Time'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {leaderboardLoading ? (
+              <div className="flex justify-center py-6"><Loader2 size={18} className="animate-spin" style={{ color: 'hsl(var(--accent))' }} /></div>
+            ) : leaderboard.length === 0 ? (
+              <div className="text-center py-6">
+                <Trophy size={24} className="mx-auto mb-2" style={{ color: 'hsl(var(--muted))' }} />
+                <p className="text-sm" style={{ color: 'hsl(var(--muted))' }}>No rankings yet — be the first to take a quiz!</p>
+              </div>
+            ) : (
+              <>
+                {leaderboard.slice(0, 5).map((p, i) => (
+                  <div key={i} className="flex items-center gap-3 py-2 px-2 rounded-lg" style={{ background: p.isCurrentUser ? 'hsl(var(--accent-soft))' : 'transparent' }}>
+                    <span className="w-5 text-center stat-number text-xs" style={{ color: i === 0 ? 'hsl(var(--warning))' : 'hsl(var(--muted))' }}>
+                      {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                    </span>
+                    <span className="flex-1 text-sm" style={{ color: 'hsl(var(--text))' }}>
+                      {p.isCurrentUser ? `${p.name} (You)` : p.name}
+                    </span>
+                    <span className="stat-number text-xs" style={{ color: 'hsl(var(--accent))' }}>{p.xp} XP</span>
+                  </div>
+                ))}
+                {userRank && userRank > 5 && (
+                  <div className="mt-2 pt-2" style={{ borderTop: '1px dashed hsl(var(--border))' }}>
+                    <div className="flex items-center gap-3 py-2 px-2 rounded-lg" style={{ background: 'hsl(var(--accent-soft))' }}>
+                      <span className="w-5 text-center stat-number text-xs" style={{ color: 'hsl(var(--muted))' }}>#{userRank}</span>
+                      <span className="flex-1 text-sm" style={{ color: 'hsl(var(--text))' }}>{user.name || 'You'} (You)</span>
+                      <span className="stat-number text-xs" style={{ color: 'hsl(var(--accent))' }}>{user.xp} XP</span>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
