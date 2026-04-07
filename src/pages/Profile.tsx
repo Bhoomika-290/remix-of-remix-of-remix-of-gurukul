@@ -86,14 +86,7 @@ const Profile = () => {
   const learnHistory = JSON.parse(localStorage.getItem('saathi-learn-history') || '[]');
   const completedTopics = learnHistory.filter((h: any) => h.completed).length;
 
-  const leaderboard = [
-    { name: 'Arjun K.', xp: 520, streak: 12 },
-    { name: user.name || 'You', xp: user.xp, streak: user.streak },
-    { name: 'Priya S.', xp: 410, streak: 8 },
-    { name: 'Rohit M.', xp: 380, streak: 5 },
-    { name: 'Ananya P.', xp: 350, streak: 9 },
-  ].sort((a, b) => b.xp - a.xp);
-  const userRank = leaderboard.findIndex(p => p.name === (user.name || 'You')) + 1;
+  // Leaderboard is now on Social page - removed hardcoded data
 
   const moodData = useMemo(() => {
     const days = moodRange === '7d' ? 7 : 30;
