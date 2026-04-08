@@ -418,11 +418,7 @@ const Profile = () => {
 
             {/* Leaderboard - see Social page */}
             {!recoveryMode && (
-              <div className="card-base text-center py-4">
-                <Trophy size={20} className="mx-auto mb-1" style={{ color: 'hsl(var(--warning))' }} />
-                <p className="text-xs font-medium" style={{ color: 'hsl(var(--text))' }}>See full leaderboard</p>
-                <p className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>Visit Study Together page for rankings</p>
-              </div>
+              <LeaderboardCard />
             )}
           </motion.div>
         )}
