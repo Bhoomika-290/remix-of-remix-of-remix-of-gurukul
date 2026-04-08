@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { Home, BookOpen, Target, Brain, Gamepad2, Users, User, Moon, ArrowLeft, Layers, Library } from 'lucide-react';
+import { Home, BookOpen, Target, Brain, Gamepad2, Users, User, Moon, ArrowLeft, Layers, Library, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import SaathiChatFAB from '@/components/SaathiChatFAB';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -24,34 +25,51 @@ const AppLayout = () => {
   const { recoveryMode, setRecoveryMode } = useTheme();
   const { user } = useApp();
   const canGoBack = location.pathname !== '/dashboard';
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col items-center w-16 py-6 gap-6 border-r border-border fixed h-full z-40"
+      {/* Desktop Sidebar - collapsible */}
+      <aside className={`hidden lg:flex flex-col items-center py-6 gap-6 border-r border-border fixed h-full z-40 transition-all duration-300 ${sidebarExpanded ? 'w-48' : 'w-16'}`}
         style={{ background: 'hsl(var(--surface))' }}>
         <Link to="/dashboard" className="block">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl border" style={{ background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))' }}>
-            <img src={gurukulLogo} alt="Gurukul" className="w-7 h-7 object-contain hover:scale-110 transition-transform" />
+          <div className={`flex items-center gap-2 ${sidebarExpanded ? 'px-3' : ''}`}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border" style={{ background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))' }}>
+              <img src={gurukulLogo} alt="Gurukul" className="w-7 h-7 object-contain hover:scale-110 transition-transform" />
+            </div>
+            {sidebarExpanded && (
+              <span className="font-brand text-base font-bold tracking-tight bg-gradient-to-r from-brand-teal to-brand-green bg-clip-text text-transparent">
+                Gurukul
+              </span>
+            )}
           </div>
         </Link>
-        <div className="flex-1 flex flex-col items-center gap-2 mt-4">
+
+        {/* Toggle button */}
+        <button onClick={() => setSidebarExpanded(!sidebarExpanded)}
+          className="w-6 h-6 rounded-full flex items-center justify-center absolute -right-3 top-14 border z-50"
+          style={{ background: 'hsl(var(--surface))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted))' }}>
+          {sidebarExpanded ? <ChevronLeft size={12} /> : <ChevronRight size={12} />}
+        </button>
+
+        <div className="flex-1 flex flex-col items-start gap-2 mt-4 w-full px-2">
           {navItems.map(item => {
             const active = location.pathname.startsWith(item.path);
             return (
               <Link key={item.path} to={item.path} title={item.label}
-                className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 relative"
+                className={`w-full rounded-xl flex items-center gap-3 transition-all duration-200 relative ${sidebarExpanded ? 'px-3 py-2.5' : 'justify-center px-0 py-2.5'}`}
                 style={{
                   background: active ? 'hsl(var(--accent-soft))' : 'transparent',
                   color: active ? 'hsl(var(--accent))' : 'hsl(var(--muted))',
                 }}>
                 {active && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full" style={{ background: 'hsl(var(--accent))' }} />}
-                <item.icon size={20} />
+                <item.icon size={20} className="shrink-0" />
+                {sidebarExpanded && <span className="text-sm font-medium">{item.label}</span>}
               </Link>
             );
           })}
         </div>
-        <div className="flex flex-col items-center gap-4">
+        <div className={`flex flex-col items-center gap-4 ${sidebarExpanded ? 'w-full px-3' : ''}`}>
           <button onClick={() => setRecoveryMode(!recoveryMode)} title="Recovery Mode"
             className="w-10 h-10 rounded-xl flex items-center justify-center transition-all"
             style={{ background: recoveryMode ? 'hsl(var(--accent-soft))' : 'transparent', color: recoveryMode ? 'hsl(var(--accent))' : 'hsl(var(--muted))' }}>
@@ -82,8 +100,8 @@ const AppLayout = () => {
           </Link>
         </div>
         <div className="flex items-center gap-3">
-          <span className="font-mono text-sm flex items-center gap-1">
-            <span className="animate-flame inline-block">🔥</span>
+          <span className="font-mono text-sm flex items-center gap-1" style={{ color: 'hsl(var(--warning))' }}>
+            <Flame size={14} />
             <span className="stat-number">{user.streak}</span>
           </span>
           <ThemeSwitcher />
@@ -94,7 +112,7 @@ const AppLayout = () => {
         </div>
       </header>
 
-      <main className="flex-1 lg:ml-16 pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-0">
+      <main className={`flex-1 pb-[calc(5.25rem+env(safe-area-inset-bottom))] lg:pb-0 transition-all duration-300 ${sidebarExpanded ? 'lg:ml-48' : 'lg:ml-16'}`}>
         {canGoBack && (
           <div className="hidden lg:block px-6 pt-4">
             <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border border-border transition-all hover:border-accent"
