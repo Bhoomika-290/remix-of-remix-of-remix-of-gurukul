@@ -21,6 +21,10 @@ import KnowledgeVault from "./pages/KnowledgeVault";
 import Journal from "./pages/Journal";
 import AppLayout from "./components/AppLayout";
 import NotFound from "./pages/NotFound";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUpload from "./pages/admin/AdminUpload";
+import AdminResources from "./pages/admin/AdminResources";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +40,12 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin" element={<AdminDashboard />}>
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="upload" element={<AdminUpload />} />
+                <Route path="resources" element={<AdminResources />} />
+              </Route>
               <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/learn" element={<Learn />} />
