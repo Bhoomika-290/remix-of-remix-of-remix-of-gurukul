@@ -288,9 +288,12 @@ const Profile = () => {
               <div className="h-full rounded-full" style={{ width: `${(user.xp / 500) * 100}%`, background: 'hsl(var(--accent))' }} />
             </div>
           </div>
-          <button onClick={() => { setUser(prev => ({ ...prev, onboardingComplete: false })); navigate('/onboarding'); }}
-            className="btn-3d-ghost text-xs px-3 py-1.5 mt-2 sm:mt-0 shrink-0">✏️ Edit Preferences</button>
         </div>
+        <button onClick={() => { setUser(prev => ({ ...prev, onboardingComplete: false })); navigate('/onboarding'); }}
+          className="shrink-0 flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-xl border transition-all hover:border-accent"
+          style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--accent))', background: 'hsl(var(--accent-soft))' }}>
+          <PenLine size={12} /> Edit Preferences
+        </button>
       </motion.div>
 
       {/* Stats */}
@@ -414,10 +417,12 @@ const Profile = () => {
 
             {/* Leaderboard - see Social page */}
             {!recoveryMode && (
-              <div className="card-base text-center py-4">
-                <Trophy size={20} className="mx-auto mb-1" style={{ color: 'hsl(var(--warning))' }} />
-                <p className="text-xs font-medium" style={{ color: 'hsl(var(--text))' }}>See full leaderboard</p>
-                <p className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>Visit Study Together page for rankings</p>
+              <div className="card-base">
+                <h3 className="font-display text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}>
+                  <Trophy size={14} style={{ color: 'hsl(var(--warning))' }} /> Leaderboard
+                </h3>
+                <p className="text-[10px] mb-2" style={{ color: 'hsl(var(--muted))' }}>Based on XP earned</p>
+                <button onClick={() => navigate('/social')} className="btn-3d-ghost w-full text-xs py-2">View Full Rankings</button>
               </div>
             )}
           </motion.div>
