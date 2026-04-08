@@ -417,7 +417,13 @@ const Profile = () => {
 
             {/* Leaderboard - see Social page */}
             {!recoveryMode && (
-              <LeaderboardCard />
+              <div className="card-base">
+                <h3 className="font-display text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}>
+                  <Trophy size={14} style={{ color: 'hsl(var(--warning))' }} /> Leaderboard
+                </h3>
+                <p className="text-[10px] mb-2" style={{ color: 'hsl(var(--muted))' }}>Based on XP earned</p>
+                <button onClick={() => navigate('/social')} className="btn-3d-ghost w-full text-xs py-2">View Full Rankings</button>
+              </div>
             )}
           </motion.div>
         )}
