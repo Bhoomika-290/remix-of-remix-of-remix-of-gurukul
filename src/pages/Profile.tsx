@@ -288,8 +288,12 @@ const Profile = () => {
               <div className="h-full rounded-full" style={{ width: `${(user.xp / 500) * 100}%`, background: 'hsl(var(--accent))' }} />
             </div>
           </div>
-          <button onClick={() => { setUser(prev => ({ ...prev, onboardingComplete: false })); navigate('/onboarding'); }}
-            className="btn-3d-ghost text-xs px-3 py-1.5 mt-2 sm:mt-0 shrink-0">✏️ Edit Preferences</button>
+        </div>
+        <button onClick={() => { setUser(prev => ({ ...prev, onboardingComplete: false })); navigate('/onboarding'); }}
+          className="shrink-0 flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-xl border transition-all hover:border-accent"
+          style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--accent))', background: 'hsl(var(--accent-soft))' }}>
+          <PenLine size={12} /> Edit Preferences
+        </button>
         </div>
       </motion.div>
 
