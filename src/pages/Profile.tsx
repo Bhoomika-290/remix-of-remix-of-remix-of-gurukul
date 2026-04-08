@@ -294,7 +294,6 @@ const Profile = () => {
           style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--accent))', background: 'hsl(var(--accent-soft))' }}>
           <PenLine size={12} /> Edit Preferences
         </button>
-        </div>
       </motion.div>
 
       {/* Stats */}
