@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
-import { Award, Flame, Target, BookOpen, Clock, TrendingUp, BarChart3, Brain, Trophy, Zap, Heart, Activity, Moon, Sun, Droplets, Dumbbell, PenLine, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownRight, FileText, Search, Star, Shield, Gamepad2, Users, Sparkles, Calendar, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Award, Flame, Target, BookOpen, Clock, TrendingUp, BarChart3, Brain, Trophy, Zap, Heart, Activity, Moon, Sun, Droplets, Dumbbell, PenLine, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownRight, FileText, Search, Star, Shield, Gamepad2, Users, Sparkles, Calendar, CheckCircle2, ChevronLeft, ChevronRight, Smile, Frown, Meh, AlertCircle, Loader2 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, RadarChart, PolarGrid, PolarAngleAxis, Radar, BarChart, Bar, Cell, AreaChart, Area } from 'recharts';
 
@@ -28,13 +29,61 @@ const allBadges = [
 ];
 
 const moodLevels = [
-  { label: 'No Data', color: 'hsl(var(--surface3))', emoji: '' },
-  { label: 'Bad', color: 'hsl(0 55% 50%)', emoji: '😢' },
-  { label: 'Stressed', color: 'hsl(25 65% 52%)', emoji: '😟' },
-  { label: 'Okay', color: 'hsl(45 70% 50%)', emoji: '😐' },
-  { label: 'Good', color: 'hsl(100 45% 45%)', emoji: '😊' },
-  { label: 'Great', color: 'hsl(150 50% 38%)', emoji: '😁' },
+  { label: 'No Data', color: 'hsl(var(--surface3))', icon: null },
+  { label: 'Bad', color: 'hsl(0 55% 50%)', icon: <Frown size={12} /> },
+  { label: 'Stressed', color: 'hsl(25 65% 52%)', icon: <AlertCircle size={12} /> },
+  { label: 'Okay', color: 'hsl(45 70% 50%)', icon: <Meh size={12} /> },
+  { label: 'Good', color: 'hsl(100 45% 45%)', icon: <Smile size={12} /> },
+  { label: 'Great', color: 'hsl(150 50% 38%)', icon: <Heart size={12} /> },
 ];
+
+// Leaderboard component for Profile
+const ProfileLeaderboard = ({ user, navigate }: { user: any; navigate: any }) => {
+  const [lb, setLb] = useState<{ name: string; xp: number; isCurrentUser: boolean }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data: profiles } = await supabase.from('profiles').select('id, name, xp').order('xp', { ascending: false }).limit(10);
+      if (profiles) {
+        setLb(profiles.map(p => ({
+          name: p.name || 'Student', xp: p.xp || 0, isCurrentUser: p.id === session?.user?.id,
+        })));
+      }
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  return (
+    <div className="card-base">
+      <h3 className="font-display text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}>
+        <Trophy size={14} style={{ color: 'hsl(var(--warning))' }} /> Leaderboard
+      </h3>
+      {loading ? (
+        <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin" style={{ color: 'hsl(var(--accent))' }} /></div>
+      ) : lb.length === 0 ? (
+        <p className="text-[10px] text-center py-3" style={{ color: 'hsl(var(--muted))' }}>No rankings yet</p>
+      ) : (
+        <>
+          {lb.slice(0, 5).map((p, i) => (
+            <div key={i} className="flex items-center gap-2 py-1.5 text-[11px]" style={{
+              borderLeft: p.isCurrentUser ? '2px solid hsl(var(--accent))' : '2px solid transparent', paddingLeft: '6px',
+            }}>
+              <span className="w-4 stat-number text-[10px]" style={{ color: i < 3 ? 'hsl(var(--warning))' : 'hsl(var(--muted))' }}>
+                {i === 0 ? <Trophy size={10} /> : `#${i + 1}`}
+              </span>
+              <span className="flex-1 truncate" style={{ color: 'hsl(var(--text))' }}>{p.isCurrentUser ? `${p.name} (You)` : p.name}</span>
+              <span className="stat-number text-[10px]" style={{ color: 'hsl(var(--accent))' }}>{p.xp} XP</span>
+            </div>
+          ))}
+          <button onClick={() => navigate('/social')} className="btn-3d-ghost w-full text-[10px] py-1.5 mt-2">View Full Rankings</button>
+        </>
+      )}
+    </div>
+  );
+};
 
 const Profile = () => {
   const { user, setUser } = useApp();
@@ -66,12 +115,12 @@ const Profile = () => {
       accuracy: Math.floor(40+Math.random()*50), timeSpent: `${Math.floor(1+Math.random()*8)}h ${Math.floor(Math.random()*59)}m`,
       topicsCompleted: Math.floor(1+Math.random()*12), streak: Math.floor(1+Math.random()*7), rank: Math.floor(1+Math.random()*20),
       topics: [
-        { name: 'Basics', quizzes: 3, accuracy: 85, mastery: 'high', lastAttempted: '2d ago', status: '✅' },
-        { name: 'Intermediate', quizzes: 5, accuracy: 62, mastery: 'medium', lastAttempted: '1d ago', status: '⚠️' },
-        { name: 'Advanced', quizzes: 2, accuracy: 40, mastery: 'low', lastAttempted: '5d ago', status: '❌' },
-        { name: 'Applications', quizzes: 1, accuracy: 55, mastery: 'medium', lastAttempted: '3d ago', status: '⚠️' },
-        { name: 'Practice Sets', quizzes: 4, accuracy: 72, mastery: 'high', lastAttempted: '1d ago', status: '✅' },
-        { name: 'Revision', quizzes: 2, accuracy: 30, mastery: 'low', lastAttempted: '7d ago', status: '❌' },
+        { name: 'Basics', quizzes: 3, accuracy: 85, mastery: 'high', lastAttempted: '2d ago', status: 'high' },
+        { name: 'Intermediate', quizzes: 5, accuracy: 62, mastery: 'medium', lastAttempted: '1d ago', status: 'medium' },
+        { name: 'Advanced', quizzes: 2, accuracy: 40, mastery: 'low', lastAttempted: '5d ago', status: 'low' },
+        { name: 'Applications', quizzes: 1, accuracy: 55, mastery: 'medium', lastAttempted: '3d ago', status: 'medium' },
+        { name: 'Practice Sets', quizzes: 4, accuracy: 72, mastery: 'high', lastAttempted: '1d ago', status: 'high' },
+        { name: 'Revision', quizzes: 2, accuracy: 30, mastery: 'low', lastAttempted: '7d ago', status: 'low' },
       ],
       strengths: ['Basics', 'Formulas', 'Theory'],
       weaknesses: ['Problem Solving', 'Applications', 'Proofs'],
@@ -133,15 +182,15 @@ const Profile = () => {
     { text: '4-7-8 Breathing', time: '2h ago', type: 'breathing' },
     { text: 'CBT Thought Reframe', time: '5h ago', type: 'cbt' },
     { text: '25min Focus Session', time: '6h ago', type: 'focus' },
-    { text: 'Mood check-in: 😊', time: 'Yesterday', type: 'mood' },
+    { text: 'Mood check-in: Good', time: 'Yesterday', type: 'mood' },
     { text: '5-4-3-2-1 Grounding', time: '2d ago', type: 'grounding' },
   ];
 
   const journalEntries = [
-    { mood: '😊', note: 'Good study session, felt productive', time: 'Today 2:30 PM', sleep: 7, anxiety: 3 },
-    { mood: '😐', note: 'Average day, a bit tired', time: 'Yesterday 9 PM', sleep: 6, anxiety: 5 },
-    { mood: '😢', note: 'Stressed about exam prep', time: '2 days ago', sleep: 5, anxiety: 7 },
-    { mood: '😊', note: 'Great score on practice test!', time: '3 days ago', sleep: 8, anxiety: 2 },
+    { mood: 'Good', moodIcon: <Smile size={12} />, note: 'Good study session, felt productive', time: 'Today 2:30 PM', sleep: 7, anxiety: 3 },
+    { mood: 'Okay', moodIcon: <Meh size={12} />, note: 'Average day, a bit tired', time: 'Yesterday 9 PM', sleep: 6, anxiety: 5 },
+    { mood: 'Bad', moodIcon: <Frown size={12} />, note: 'Stressed about exam prep', time: '2 days ago', sleep: 5, anxiety: 7 },
+    { mood: 'Good', moodIcon: <Smile size={12} />, note: 'Great score on practice test!', time: '3 days ago', sleep: 8, anxiety: 2 },
   ];
 
   const weeklyQuests = [
@@ -250,14 +299,14 @@ const Profile = () => {
           {calendarView !== '3month' && (
             <span className="text-[7px] font-medium absolute top-0 left-0.5" style={{ color: mood > 0 ? 'rgba(255,255,255,0.8)' : 'hsl(var(--muted))' }}>{d}</span>
           )}
-          {calendarView === 'week' && mood > 0 && (
-            <span className="text-sm">{ml.emoji}</span>
+          {calendarView === 'week' && mood > 0 && ml.icon && (
+            <span className="text-white">{ml.icon}</span>
           )}
           {isHovered && mood > 0 && calendarView !== '3month' && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50 pointer-events-none" style={{ minWidth: 120 }}>
               <div className="rounded-lg p-1.5 text-[9px] shadow-lg" style={{ background: 'hsl(var(--surface))', border: '1px solid hsl(var(--border))' }}>
                 <p className="font-medium" style={{ color: 'hsl(var(--text))' }}>{monthNames[calendarMonth]} {d}</p>
-                <p style={{ color: ml.color }}>{ml.emoji} {ml.label}</p>
+                <p className="flex items-center gap-1" style={{ color: ml.color }}>{ml.icon} {ml.label}</p>
                 {entry?.note && <p className="mt-0.5" style={{ color: 'hsl(var(--muted))' }}>{entry.note}</p>}
               </div>
             </div>
@@ -415,16 +464,8 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Leaderboard - see Social page */}
-            {!recoveryMode && (
-              <div className="card-base">
-                <h3 className="font-display text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}>
-                  <Trophy size={14} style={{ color: 'hsl(var(--warning))' }} /> Leaderboard
-                </h3>
-                <p className="text-[10px] mb-2" style={{ color: 'hsl(var(--muted))' }}>Based on XP earned</p>
-                <button onClick={() => navigate('/social')} className="btn-3d-ghost w-full text-xs py-2">View Full Rankings</button>
-              </div>
-            )}
+            {/* Leaderboard */}
+            {!recoveryMode && <ProfileLeaderboard user={user} navigate={navigate} />}
           </motion.div>
         )}
 
@@ -629,7 +670,7 @@ const Profile = () => {
             <div className="grid grid-cols-4 gap-2">
               {[
                 { label: 'Wellness', value: 72, icon: <Heart size={16}/>, color: 'hsl(var(--success))' },
-                { label: 'Mood', value: '😊 Good', icon: <Activity size={16}/>, color: 'hsl(var(--accent))' },
+                { label: 'Mood', value: 'Good', icon: <Activity size={16}/>, color: 'hsl(var(--accent))' },
                 { label: 'Streak', value: '5d', icon: <Flame size={16}/>, color: 'hsl(var(--warning))' },
                 { label: 'Burnout', value: 'Low', icon: <Shield size={16}/>, color: 'hsl(var(--success))' },
               ].map((s, i) => (
@@ -688,10 +729,10 @@ const Profile = () => {
             <div className="card-base">
               {/* Mini stats bar */}
               <div className="flex flex-wrap gap-3 mb-3 text-[10px]" style={{ color: 'hsl(var(--muted))' }}>
-                <span>📅 <strong style={{ color: 'hsl(var(--text))' }}>{calendarStats.logged}</strong> days logged</span>
-                <span>😊 Avg: <strong style={{ color: 'hsl(var(--text))' }}>{moodLevels[Math.round(calendarStats.avgMood)]?.label || 'N/A'}</strong></span>
-                <span>⭐ Best: <strong style={{ color: 'hsl(var(--text))' }}>{monthNames[calendarMonth]} {calendarStats.bestDay}</strong></span>
-                <span>🔥 Streak: <strong style={{ color: 'hsl(var(--text))' }}>{calendarStats.maxStreak}d</strong></span>
+                <span className="flex items-center gap-1"><Calendar size={10} /> <strong style={{ color: 'hsl(var(--text))' }}>{calendarStats.logged}</strong> days logged</span>
+                <span className="flex items-center gap-1"><Smile size={10} /> Avg: <strong style={{ color: 'hsl(var(--text))' }}>{moodLevels[Math.round(calendarStats.avgMood)]?.label || 'N/A'}</strong></span>
+                <span className="flex items-center gap-1"><Star size={10} /> Best: <strong style={{ color: 'hsl(var(--text))' }}>{monthNames[calendarMonth]} {calendarStats.bestDay}</strong></span>
+                <span className="flex items-center gap-1"><Flame size={10} /> Streak: <strong style={{ color: 'hsl(var(--text))' }}>{calendarStats.maxStreak}d</strong></span>
               </div>
 
               {/* Header with nav + view toggle */}
@@ -754,7 +795,7 @@ const Profile = () => {
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                       className="mt-3 p-3 rounded-xl overflow-hidden" style={{ background: 'hsl(var(--surface2))' }}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold" style={{ color: 'hsl(var(--text))' }}>{monthNames[calendarMonth]} {selectedDay} — {ml.emoji} {ml.label}</span>
+                        <span className="text-sm font-semibold flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}>{monthNames[calendarMonth]} {selectedDay} — <span style={{ color: ml.color }}>{ml.icon}</span> {ml.label}</span>
                         <button onClick={() => setSelectedDay(null)} className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>✕</button>
                       </div>
                       <div className="grid grid-cols-4 gap-2 text-center">
@@ -793,11 +834,11 @@ const Profile = () => {
                   {journalEntries.map((j, i) => (
                     <div key={i} className="p-2 rounded-xl" style={{ background: 'hsl(var(--surface2))' }}>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px]">{j.mood} <span className="font-medium" style={{ color: 'hsl(var(--text))' }}>{j.note}</span></span>
+                        <span className="text-[10px] flex items-center gap-1">{j.moodIcon} <span className="font-medium" style={{ color: 'hsl(var(--text))' }}>{j.note}</span></span>
                         <span className="text-[9px] shrink-0 ml-2" style={{ color: 'hsl(var(--muted))' }}>{j.time}</span>
                       </div>
                       <div className="flex gap-2 text-[9px] mt-0.5" style={{ color: 'hsl(var(--muted))' }}>
-                        <span>😴 {j.sleep}h</span><span>😰 {j.anxiety}/10</span>
+                        <span className="flex items-center gap-0.5"><Moon size={8} /> {j.sleep}h</span><span className="flex items-center gap-0.5"><AlertCircle size={8} /> {j.anxiety}/10</span>
                       </div>
                     </div>
                   ))}
@@ -853,7 +894,7 @@ const Profile = () => {
                 </h3>
                 <div className="grid grid-cols-3 gap-1.5">
                   {[
-                    { l: 'Mood', v: '😊 3.8' }, { l: 'Focus', v: '4h 20m' }, { l: 'Activities', v: '12' },
+                    { l: 'Mood', v: '3.8' }, { l: 'Focus', v: '4h 20m' }, { l: 'Activities', v: '12' },
                     { l: 'Badges', v: '2 new' }, { l: 'vs Last', v: '+15%' }, { l: 'Habit %', v: '72%' },
                   ].map((s, i) => (
                     <div key={i} className="text-center p-1 rounded-lg" style={{ background: 'hsl(var(--surface2))' }}>
@@ -881,7 +922,7 @@ const Profile = () => {
             { l: 'Top', v: '15%', c: 'hsl(var(--warning))' },
             { l: 'Cards', v: '47', c: 'hsl(var(--accent))' },
             { l: 'Retain', v: '78%', c: 'hsl(var(--success))' },
-            { l: 'Mood', v: '😊', c: 'hsl(var(--accent))' },
+            { l: 'Mood', v: 'Good', c: 'hsl(var(--accent))' },
           ].map((s, i) => (
             <div key={i} className="text-center">
               <p className="stat-number text-xs font-bold" style={{ color: s.c }}>{s.v}</p>

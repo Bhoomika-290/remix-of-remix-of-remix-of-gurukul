@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Zap, HelpCircle, Loader2, Sparkles, AlertCircle, Wind, Shield, Swords, Heart } from 'lucide-react';
+import { Zap, HelpCircle, Loader2, Sparkles, AlertCircle, Wind, Shield, Swords, Heart, Trophy, Flame, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Question {
@@ -109,23 +109,28 @@ const Quiz = () => {
     if (state?.subject && state?.subtopic && !quizStarted && questions.length === 0) fetchQuiz();
   }, [state, quizStarted, questions.length, fetchQuiz]);
 
-  // Adaptive difficulty
+  // Adaptive difficulty & boss trigger after 3 consecutive correct
   useEffect(() => {
     if (correctStreak >= 3 && difficulty !== 'hard') {
       setDifficulty(prev => prev === 'easy' ? 'medium' : 'hard');
-      setEncouragement('🔥 You\'re on fire! Difficulty increased.');
+      setEncouragement('Difficulty increased — you\'re on fire!');
       setTimeout(() => setEncouragement(null), 3000);
+    }
+    // Boss battle after 3 consecutive correct answers
+    if (correctStreak >= 3 && !showBoss && !recoveryMode && quizStarted) {
       setCorrectStreak(0);
+      setTimeout(() => triggerBoss(), 1000);
     }
   }, [correctStreak]);
 
+  // Brain fog after 3 consecutive wrong answers
   useEffect(() => {
     if (wrongStreak >= 3 && !brainFog) setBrainFog(true);
   }, [wrongStreak]);
 
   useEffect(() => {
     if (!breakActive) return;
-    if (breakTimer <= 0) { setBreakActive(false); setBrainFog(false); setDifficulty('easy'); setEncouragement('Welcome back 🌿 Switched to easier questions.'); setTimeout(() => setEncouragement(null), 4000); return; }
+    if (breakTimer <= 0) { setBreakActive(false); setBrainFog(false); setDifficulty('easy'); setEncouragement('Welcome back — switched to easier questions.'); setTimeout(() => setEncouragement(null), 4000); return; }
     const t = setTimeout(() => setBreakTimer(prev => prev - 1), 1000);
     return () => clearTimeout(t);
   }, [breakActive, breakTimer]);
@@ -141,7 +146,7 @@ const Quiz = () => {
   // Boss timer
   useEffect(() => {
     if (!showBoss || bossDefeated) return;
-    if (bossTimer <= 0) { setShowBoss(false); setBossDefeated(false); setBossHP(99); setBossTimer(60); setBossQCount(0); setBossQuestions([]); setBossCurrentQ(0); toast.error("Time's up! Boss escaped. Keep going! 💪"); return; }
+    if (bossTimer <= 0) { setShowBoss(false); setBossDefeated(false); setBossHP(99); setBossTimer(60); setBossQCount(0); setBossQuestions([]); setBossCurrentQ(0); toast.error("Time's up! Boss escaped. Keep going!"); return; }
     const t = setTimeout(() => setBossTimer(prev => prev - 1), 1000);
     return () => clearTimeout(t);
   }, [showBoss, bossTimer, bossDefeated]);
@@ -173,10 +178,7 @@ const Quiz = () => {
       if (q.concept && !weakConcepts.includes(q.concept)) setWeakConcepts(prev => [...prev, q.concept]);
     }
 
-    // Boss trigger: every 5 questions with streak >= 2
-    if ((currentQ + 1) % 5 === 0 && correctStreak >= 2 && isCorrect && !recoveryMode) {
-      setTimeout(() => triggerBoss(), 1500);
-    }
+    // Boss trigger is now handled by the correctStreak useEffect above
   };
 
   const triggerBoss = async () => {
@@ -247,7 +249,7 @@ const Quiz = () => {
       // Boss survived
       setShowBoss(false);
       setBossQuestions([]);
-      toast('Boss survived! Keep going to trigger another battle! 💪');
+      toast('Boss survived! Keep going to trigger another battle!');
     }
   };
 
@@ -256,7 +258,7 @@ const Quiz = () => {
     setAnswered(true);
     setSelected(-1);
     if (q.concept && !weakConcepts.includes(q.concept)) setWeakConcepts(prev => [...prev, q.concept]);
-    setEncouragement(`🤝 ${Math.floor(Math.random() * 40) + 10} students also got stuck on this. You're not alone.`);
+    setEncouragement(`${Math.floor(Math.random() * 40) + 10} students also got stuck on this. You're not alone.`);
     setTimeout(() => setEncouragement(null), 4000);
   };
 
@@ -405,7 +407,7 @@ const Quiz = () => {
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'linear-gradient(180deg, hsl(0 20% 8%), hsl(0 15% 12%))' }}>
           <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative z-10 text-center max-w-sm">
-            <motion.span className="text-7xl block mb-4" animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.2, 1] }} transition={{ duration: 0.6 }}>🎉</motion.span>
+            <motion.div className="mb-4" animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.2, 1] }} transition={{ duration: 0.6 }}><Trophy size={64} className="mx-auto text-yellow-400" /></motion.div>
             <h2 className="font-display text-3xl font-bold mb-2 text-white">Victory!</h2>
             <p className="text-sm mb-6 text-white/50">Boss defeated! +80 XP bonus earned.</p>
             <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}
@@ -552,7 +554,7 @@ const Quiz = () => {
           </button>
           <span className="text-sm" style={{ color: 'hsl(var(--muted))' }}>Q{currentQ + 1}/{questions.length}</span>
           <span className="stat-number text-sm flex items-center gap-1" style={{ color: 'hsl(var(--accent))' }}><Zap size={14} /> +{sessionXP}</span>
-          {correctStreak >= 2 && <span className="text-sm animate-flame">🔥 {correctStreak}</span>}
+          {correctStreak >= 2 && <span className="stat-number text-sm flex items-center gap-1" style={{ color: 'hsl(var(--warning))' }}><Flame size={14} /> {correctStreak}</span>}
         </div>
       </div>
 
@@ -605,7 +607,7 @@ const Quiz = () => {
           {!answered && (
             <div className="flex items-center justify-between mt-4">
               <button onClick={handleStuck} className="flex items-center gap-2 text-xs" style={{ color: 'hsl(var(--muted))' }}><AlertCircle size={14} /> I'm stuck</button>
-              {stuckCount > 0 && <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'hsl(var(--warning) / 0.1)', color: 'hsl(var(--warning))' }}>🤝 {stuckCount} stuck today</span>}
+              {stuckCount > 0 && <span className="text-[11px] px-2 py-0.5 rounded-full flex items-center gap-1" style={{ background: 'hsl(var(--warning) / 0.1)', color: 'hsl(var(--warning))' }}><Users size={10} /> {stuckCount} stuck today</span>}
             </div>
           )}
 

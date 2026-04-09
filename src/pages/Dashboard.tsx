@@ -49,38 +49,23 @@ const Dashboard = () => {
   const { recoveryMode, setRecoveryMode } = useTheme();
   const navigate = useNavigate();
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [lbLoading, setLbLoading] = useState(true);
 
-  // Real leaderboard
+  // Real leaderboard - show ALL signed up users
   useEffect(() => {
     const load = async () => {
       setLbLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       const { data: profiles } = await supabase.from('profiles').select('id, name, xp').order('xp', { ascending: false }).limit(10);
       if (profiles) {
-        setLeaderboard(profiles.filter(p => (p.xp || 0) > 0).map(p => ({
+        setLeaderboard(profiles.map(p => ({
           name: p.name || 'Student', xp: p.xp || 0, isCurrentUser: p.id === session?.user?.id,
         })));
       }
       setLbLoading(false);
     };
     load();
-  }, []);
-
-  // Heatmap from real study history
-  const heatmapData = useMemo(() => {
-    try {
-      const history = JSON.parse(localStorage.getItem('saathi-learn-history') || '[]');
-      const now = Date.now();
-      return Array.from({ length: 182 }, (_, i) => {
-        const dayStart = now - (181 - i) * 86400000;
-        const dayEnd = dayStart + 86400000;
-        const count = history.filter((h: any) => h.timestamp >= dayStart && h.timestamp < dayEnd).length;
-        return Math.min(count, 3);
-      });
-    } catch { return Array.from({ length: 182 }, () => 0); }
   }, []);
 
   const recommendations = useMemo(() => {
@@ -266,38 +251,6 @@ const Dashboard = () => {
             </div>
             <ArrowRight size={16} style={{ color: 'hsl(var(--accent))' }} />
           </motion.div>
-        </div>
-
-        {/* Heatmap - Real Data */}
-        <div className="card-base">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-display text-sm font-semibold" style={{ color: 'hsl(var(--text))' }}>Your consistency</h3>
-            <span className="text-xs stat-number" style={{ color: 'hsl(var(--muted))' }}>Last 26 weeks</span>
-          </div>
-          <div className="flex gap-0.5 text-[9px] mb-1 pl-8" style={{ color: 'hsl(var(--muted))' }}>
-            {['', '', 'Mon', '', 'Wed', '', 'Fri'].map((d, i) => (
-              <span key={i} className="flex-1 text-center">{d}</span>
-            ))}
-          </div>
-          <div className="overflow-x-auto">
-            <div style={{ display: 'grid', gridTemplateRows: 'repeat(7, 1fr)', gridAutoFlow: 'column', gap: '3px', width: '100%', minWidth: '100%' }}>
-              {heatmapData.map((level, i) => (
-                <div key={i} className="rounded-sm cursor-pointer hover:ring-1 hover:ring-offset-1 transition-all"
-                  style={{
-                    aspectRatio: '1', minWidth: '10px',
-                    background: level === 0 ? 'hsl(var(--surface2))' : level === 1 ? 'hsl(var(--accent) / 0.25)' : level === 2 ? 'hsl(var(--accent) / 0.55)' : 'hsl(var(--accent))',
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center gap-1 mt-2 justify-end text-[9px]" style={{ color: 'hsl(var(--muted))' }}>
-            <span>Less</span>
-            {[0, 1, 2, 3].map(l => (
-              <div key={l} className="w-2.5 h-2.5 rounded-sm" style={{ background: l === 0 ? 'hsl(var(--surface2))' : `hsl(var(--accent) / ${l * 0.3 + 0.1})` }} />
-            ))}
-            <span>More</span>
-          </div>
         </div>
       </div>
 
