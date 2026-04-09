@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Smile, Frown, Moon, Dumbbell, Sunglasses, Flame, Zap, Trophy, Target, Brain, Users } from 'lucide-react';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import gurukulLogo from '@/assets/gurukul-logo.png';
 
@@ -70,15 +71,15 @@ const Landing = () => {
               <div>
                 <p className="text-xs text-center mb-2" style={{ color: 'hsl(var(--muted))' }}>How are you feeling?</p>
                 <div className="flex gap-3 justify-center">
-                  {['😊', '😓', '😴', '💪', '😎'].map((e, i) => (
-                    <div key={i} className={`mood-orb ${i === 3 ? 'selected' : ''}`} style={{ background: 'hsl(var(--surface2))' }}>{e}</div>
+                  {[<Smile size={18} />, <Frown size={18} />, <Moon size={18} />, <Dumbbell size={18} />, <Sunglasses size={18} />].map((icon, i) => (
+                    <div key={i} className={`mood-orb ${i === 3 ? 'selected' : ''} flex items-center justify-center`} style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--accent))' }}>{icon}</div>
                   ))}
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3 text-center pt-2 border-t" style={{ borderColor: 'hsl(var(--border))' }}>
-                <div><span className="stat-number text-lg font-bold" style={{ color: 'hsl(var(--accent))' }}>7</span><p className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>🔥 Streak</p></div>
-                <div><span className="stat-number text-lg font-bold" style={{ color: 'hsl(var(--accent))' }}>340</span><p className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>⚡ XP</p></div>
-                <div><span className="stat-number text-lg font-bold" style={{ color: 'hsl(var(--accent))' }}>L2</span><p className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>🏆 Hero</p></div>
+                <div><span className="stat-number text-lg font-bold" style={{ color: 'hsl(var(--accent))' }}>7</span><p className="text-[10px] flex items-center justify-center gap-0.5" style={{ color: 'hsl(var(--muted))' }}><Flame size={10} /> Streak</p></div>
+                <div><span className="stat-number text-lg font-bold" style={{ color: 'hsl(var(--accent))' }}>340</span><p className="text-[10px] flex items-center justify-center gap-0.5" style={{ color: 'hsl(var(--muted))' }}><Zap size={10} /> XP</p></div>
+                <div><span className="stat-number text-lg font-bold" style={{ color: 'hsl(var(--accent))' }}>L2</span><p className="text-[10px] flex items-center justify-center gap-0.5" style={{ color: 'hsl(var(--muted))' }}><Trophy size={10} /> Hero</p></div>
               </div>
             </div>
           </motion.div>
@@ -92,12 +93,12 @@ const Landing = () => {
 
         <div id="features" className="mt-24 grid md:grid-cols-3 gap-6">
           {[
-            { icon: '🎯', title: 'Reads your state', desc: 'Checks your mood, sleep, energy before deciding how you learn today' },
-            { icon: '🧠', title: 'Teaches interactively', desc: 'Questions woven into concepts — like Brilliant, but built for JEE/NEET' },
-            { icon: '🤝', title: "You're not alone", desc: 'Study rooms, accountability pairs, anonymous struggle sharing' },
+            { icon: <Target size={28} />, title: 'Reads your state', desc: 'Checks your mood, sleep, energy before deciding how you learn today' },
+            { icon: <Brain size={28} />, title: 'Teaches interactively', desc: 'Questions woven into concepts — like Brilliant, but built for JEE/NEET' },
+            { icon: <Users size={28} />, title: "You're not alone", desc: 'Study rooms, accountability pairs, anonymous struggle sharing' },
           ].map((f, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="card-base group cursor-default">
-              <span className="text-3xl mb-3 block">{f.icon}</span>
+              <span className="mb-3 block" style={{ color: 'hsl(var(--accent))' }}>{f.icon}</span>
               <h3 className="font-display text-lg font-semibold mb-2" style={{ color: 'hsl(var(--text))' }}>{f.title}</h3>
               <p className="text-sm leading-relaxed" style={{ color: 'hsl(var(--text-secondary))' }}>{f.desc}</p>
             </motion.div>
