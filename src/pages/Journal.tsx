@@ -193,7 +193,7 @@ const Journal = () => {
                   borderColor: selectedMood === m.label ? 'hsl(var(--accent))' : 'hsl(var(--border))',
                   color: selectedMood === m.label ? 'hsl(var(--accent))' : 'hsl(var(--text))',
                 }}>
-                <span className="text-base">{m.emoji}</span> {m.label}
+                <span className="text-base">{m.icon}</span> {m.label}
               </button>
             ))}
           </div>
@@ -248,7 +248,7 @@ const Journal = () => {
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs" style={{ color: 'hsl(var(--muted))' }}>{formatDate(entry.created_at)}</span>
-                        {moodObj && <span className="text-sm" title={moodObj.label}>{moodObj.emoji}</span>}
+                        {moodObj && <span className="text-sm" title={moodObj.label} style={{ color: 'hsl(var(--accent))' }}>{moodObj.icon}</span>}
                       </div>
                       {isExpanded ? <ChevronUp size={14} style={{ color: 'hsl(var(--muted))' }} /> : <ChevronDown size={14} style={{ color: 'hsl(var(--muted))' }} />}
                     </div>
