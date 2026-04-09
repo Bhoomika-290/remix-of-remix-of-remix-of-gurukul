@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
-import { Award, Flame, Target, BookOpen, Clock, TrendingUp, BarChart3, Brain, Trophy, Zap, Heart, Activity, Moon, Sun, Droplets, Dumbbell, PenLine, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownRight, FileText, Search, Star, Shield, Gamepad2, Users, Sparkles, Calendar, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Award, Flame, Target, BookOpen, Clock, TrendingUp, BarChart3, Brain, Trophy, Zap, Heart, Activity, Moon, Sun, Droplets, Dumbbell, PenLine, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownRight, FileText, Search, Star, Shield, Gamepad2, Users, Sparkles, Calendar, CheckCircle2, ChevronLeft, ChevronRight, Smile, Frown, Meh, AlertCircle, Loader2 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, RadarChart, PolarGrid, PolarAngleAxis, Radar, BarChart, Bar, Cell, AreaChart, Area } from 'recharts';
 
@@ -28,12 +29,12 @@ const allBadges = [
 ];
 
 const moodLevels = [
-  { label: 'No Data', color: 'hsl(var(--surface3))', emoji: '' },
-  { label: 'Bad', color: 'hsl(0 55% 50%)', emoji: '😢' },
-  { label: 'Stressed', color: 'hsl(25 65% 52%)', emoji: '😟' },
-  { label: 'Okay', color: 'hsl(45 70% 50%)', emoji: '😐' },
-  { label: 'Good', color: 'hsl(100 45% 45%)', emoji: '😊' },
-  { label: 'Great', color: 'hsl(150 50% 38%)', emoji: '😁' },
+  { label: 'No Data', color: 'hsl(var(--surface3))', icon: null },
+  { label: 'Bad', color: 'hsl(0 55% 50%)', icon: <Frown size={12} /> },
+  { label: 'Stressed', color: 'hsl(25 65% 52%)', icon: <AlertCircle size={12} /> },
+  { label: 'Okay', color: 'hsl(45 70% 50%)', icon: <Meh size={12} /> },
+  { label: 'Good', color: 'hsl(100 45% 45%)', icon: <Smile size={12} /> },
+  { label: 'Great', color: 'hsl(150 50% 38%)', icon: <Heart size={12} /> },
 ];
 
 const Profile = () => {
@@ -250,8 +251,18 @@ const Profile = () => {
           {calendarView !== '3month' && (
             <span className="text-[7px] font-medium absolute top-0 left-0.5" style={{ color: mood > 0 ? 'rgba(255,255,255,0.8)' : 'hsl(var(--muted))' }}>{d}</span>
           )}
-          {calendarView === 'week' && mood > 0 && (
-            <span className="text-sm">{ml.emoji}</span>
+          {calendarView === 'week' && mood > 0 && ml.icon && (
+            <span className="text-white">{ml.icon}</span>
+          )}
+          {isHovered && mood > 0 && calendarView !== '3month' && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50 pointer-events-none" style={{ minWidth: 120 }}>
+              <div className="rounded-lg p-1.5 text-[9px] shadow-lg" style={{ background: 'hsl(var(--surface))', border: '1px solid hsl(var(--border))' }}>
+                <p className="font-medium" style={{ color: 'hsl(var(--text))' }}>{monthNames[calendarMonth]} {d}</p>
+                <p className="flex items-center gap-1" style={{ color: ml.color }}>{ml.icon} {ml.label}</p>
+                {entry?.note && <p className="mt-0.5" style={{ color: 'hsl(var(--muted))' }}>{entry.note}</p>}
+              </div>
+            </div>
+          )}
           )}
           {isHovered && mood > 0 && calendarView !== '3month' && (
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50 pointer-events-none" style={{ minWidth: 120 }}>
