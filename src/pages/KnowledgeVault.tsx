@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, BookOpen, FileText, Video, ClipboardList, ChevronRight, Home, Download, Play, Filter, Loader2, Globe, Upload, X, ExternalLink, Plus } from 'lucide-react';
+import { Search, BookOpen, FileText, Video, ClipboardList, ChevronRight, Home, Download, Play, Filter, Loader2, Globe, Upload, X, ExternalLink, Plus, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { toast } from 'sonner';
