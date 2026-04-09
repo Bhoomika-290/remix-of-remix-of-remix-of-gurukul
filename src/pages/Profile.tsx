@@ -755,7 +755,7 @@ const Profile = () => {
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                       className="mt-3 p-3 rounded-xl overflow-hidden" style={{ background: 'hsl(var(--surface2))' }}>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold" style={{ color: 'hsl(var(--text))' }}>{monthNames[calendarMonth]} {selectedDay} — {ml.emoji} {ml.label}</span>
+                        <span className="text-sm font-semibold flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}>{monthNames[calendarMonth]} {selectedDay} — <span style={{ color: ml.color }}>{ml.icon}</span> {ml.label}</span>
                         <button onClick={() => setSelectedDay(null)} className="text-[10px]" style={{ color: 'hsl(var(--muted))' }}>✕</button>
                       </div>
                       <div className="grid grid-cols-4 gap-2 text-center">
