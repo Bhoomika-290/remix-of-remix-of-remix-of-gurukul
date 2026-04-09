@@ -116,7 +116,7 @@ const Social = () => {
     if (pomodoroActive && pomodoroTime > 0) {
       timerRef.current = setInterval(() => {
         setPomodoroTime(prev => {
-          if (prev <= 1) { setPomodoroActive(false); toast.success('Focus session complete! 🎉'); return 0; }
+          if (prev <= 1) { setPomodoroActive(false); toast.success('Focus session complete!'); return 0; }
           return prev - 1;
         });
       }, 1000);
@@ -127,7 +127,7 @@ const Social = () => {
   }, [pomodoroActive, pomodoroTime]);
 
   const handleJoin = (id: number) => { setJoinedRoom(id); setPomodoroTime(25 * 60); setPomodoroActive(true); toast.success('Joined room! Timer started.'); };
-  const handleCheer = (id: number) => { if (cheeredRooms.includes(id)) return; setCheeredRooms(prev => [...prev, id]); toast.success('Cheer sent! 🤍'); };
+  const handleCheer = (id: number) => { if (cheeredRooms.includes(id)) return; setCheeredRooms(prev => [...prev, id]); toast.success('Cheer sent!'); };
   const handleLeave = () => { setJoinedRoom(null); setPomodoroActive(false); setPomodoroTime(25 * 60); if (timerRef.current) clearInterval(timerRef.current); toast('Left room'); };
 
   // In-room view
@@ -176,7 +176,7 @@ const Social = () => {
               ) : (
                 <button onClick={() => { setPomodoroTime(25 * 60); setPomodoroActive(true); }} className="btn-3d text-sm px-6 py-2.5">New session</button>
               )}
-              <button onClick={() => toast.success('Cheer sent! 🤍')} className="btn-3d text-sm px-6 py-2.5"><Heart size={14} className="inline mr-1" /> Cheer</button>
+              <button onClick={() => toast.success('Cheer sent!')} className="btn-3d text-sm px-6 py-2.5"><Heart size={14} className="inline mr-1" /> Cheer</button>
             </div>
           </div>
 
@@ -275,7 +275,7 @@ const Social = () => {
               </button>
               <button onClick={() => handleCheer(room.id)} disabled={cheeredRooms.includes(room.id)}
                 className={`btn-3d-ghost text-xs px-4 py-2.5 ${cheeredRooms.includes(room.id) ? 'opacity-50' : ''}`}>
-                {cheeredRooms.includes(room.id) ? '✓ Cheered' : '🤍 Cheer'}
+                {cheeredRooms.includes(room.id) ? <><Heart size={12} /> Cheered</> : <><Heart size={12} /> Cheer</>}
               </button>
             </div>
           </motion.div>
@@ -303,14 +303,14 @@ const Social = () => {
                 style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>{user.name?.[0] || 'Y'}</div>
               <div className="flex-1 text-center">
                 <div className="flex items-center justify-center gap-2 text-xs" style={{ color: 'hsl(var(--muted))' }}>
-                  <span>3 sessions</span> <span>·</span> <span>🔥 {user.streak}</span>
+                  <span>3 sessions</span> <span>·</span> <span className="flex items-center gap-0.5"><Flame size={10} /> {user.streak}</span>
                 </div>
               </div>
               <div className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-display font-bold"
                 style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>?</div>
             </div>
             <p className="text-sm text-center" style={{ color: 'hsl(var(--muted))' }}>Find an accountability partner by joining study rooms!</p>
-            <button className="btn-3d-ghost w-full text-xs py-2 mt-3" onClick={() => toast('Join a study room to pair up!')}>Find partner 👋</button>
+            <button className="btn-3d-ghost w-full text-xs py-2 mt-3" onClick={() => toast('Join a study room to pair up!')}>Find partner</button>
           </div>
 
           <div className="card-base">
@@ -344,7 +344,7 @@ const Social = () => {
                 {leaderboard.slice(0, 5).map((p, i) => (
                   <div key={i} className="flex items-center gap-3 py-2 px-2 rounded-lg" style={{ background: p.isCurrentUser ? 'hsl(var(--accent-soft))' : 'transparent' }}>
                     <span className="w-5 text-center stat-number text-xs" style={{ color: i === 0 ? 'hsl(var(--warning))' : 'hsl(var(--muted))' }}>
-                      {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+                      {i === 0 ? <Trophy size={14} className="text-yellow-500" /> : i === 1 ? <Trophy size={14} className="text-gray-400" /> : i === 2 ? <Trophy size={14} className="text-amber-700" /> : `#${i + 1}`}
                     </span>
                     <span className="flex-1 text-sm" style={{ color: 'hsl(var(--text))' }}>
                       {p.isCurrentUser ? `${p.name} (You)` : p.name}
