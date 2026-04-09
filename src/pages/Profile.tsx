@@ -263,16 +263,6 @@ const Profile = () => {
               </div>
             </div>
           )}
-          )}
-          {isHovered && mood > 0 && calendarView !== '3month' && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50 pointer-events-none" style={{ minWidth: 120 }}>
-              <div className="rounded-lg p-1.5 text-[9px] shadow-lg" style={{ background: 'hsl(var(--surface))', border: '1px solid hsl(var(--border))' }}>
-                <p className="font-medium" style={{ color: 'hsl(var(--text))' }}>{monthNames[calendarMonth]} {d}</p>
-                <p style={{ color: ml.color }}>{ml.emoji} {ml.label}</p>
-                {entry?.note && <p className="mt-0.5" style={{ color: 'hsl(var(--muted))' }}>{entry.note}</p>}
-              </div>
-            </div>
-          )}
         </motion.div>
       );
     }
