@@ -134,7 +134,7 @@ const Journal = () => {
       toast.error(error.message || 'Failed to save');
     } else {
       setEntries(prev => [data as JournalEntry, ...prev]);
-      toast.success('Entry saved 📝');
+      toast.success('Entry saved successfully');
       setContent('');
       setSelectedMood(null);
       setCurrentPrompt(null);

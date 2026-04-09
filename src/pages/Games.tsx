@@ -73,7 +73,7 @@ const Games = () => {
             className="card-base text-left group cursor-pointer hover:border-accent transition-all"
             style={{ borderColor: 'hsl(var(--border))' }}
           >
-            <span className="text-3xl mb-2 block">{g.emoji}</span>
+            <span className="mb-2 block" style={{ color: 'hsl(var(--accent))' }}>{g.icon}</span>
             <h3 className="font-display text-base font-semibold mb-1" style={{ color: 'hsl(var(--text))' }}>{g.title}</h3>
             <p className="text-xs mb-2" style={{ color: 'hsl(var(--text-secondary))' }}>{g.desc}</p>
             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--muted))' }}>
