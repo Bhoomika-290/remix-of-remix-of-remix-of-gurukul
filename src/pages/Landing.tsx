@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Smile, Frown, Moon, Dumbbell, Sunglasses, Flame, Zap, Trophy, Target, Brain, Users } from 'lucide-react';
+import { Smile, Frown, Moon, Dumbbell, Glasses, Flame, Zap, Trophy, Target, Brain, Users } from 'lucide-react';
 import ThemeSwitcher from '@/components/ThemeSwitcher';
 import gurukulLogo from '@/assets/gurukul-logo.png';
 
@@ -71,7 +71,7 @@ const Landing = () => {
               <div>
                 <p className="text-xs text-center mb-2" style={{ color: 'hsl(var(--muted))' }}>How are you feeling?</p>
                 <div className="flex gap-3 justify-center">
-                  {[<Smile size={18} />, <Frown size={18} />, <Moon size={18} />, <Dumbbell size={18} />, <Sunglasses size={18} />].map((icon, i) => (
+                  {[<Smile size={18} />, <Frown size={18} />, <Moon size={18} />, <Dumbbell size={18} />, <Glasses size={18} />].map((icon, i) => (
                     <div key={i} className={`mood-orb ${i === 3 ? 'selected' : ''} flex items-center justify-center`} style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--accent))' }}>{icon}</div>
                   ))}
                 </div>
