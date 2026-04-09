@@ -1,23 +1,23 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Wind, Sprout, Layers, Type } from 'lucide-react';
 import BreathBubbles from '@/components/games/BreathBubbles';
 import MemoryGarden from '@/components/games/MemoryGarden';
 import ZenTiles from '@/components/games/ZenTiles';
 import WordWeave from '@/components/games/WordWeave';
 
 const games = [
-  { id: 'breath', emoji: '🫧', title: 'Breath Bubbles', desc: 'Pop bubbles in sync with your breath. Calming, no score.', time: '2-3 min' },
-  { id: 'memory', emoji: '🌱', title: 'Memory Garden', desc: 'Match concepts to their meanings. Learn while relaxing.', time: '3-5 min' },
-  { id: 'zen', emoji: '🪨', title: 'Zen Tiles', desc: 'Slide tiles into place. No timer, no pressure.', time: '2-5 min' },
-  { id: 'word', emoji: '📝', title: 'Word Weave', desc: 'Find words from scattered letters. Gentle and fun.', time: '3-5 min' },
+  { id: 'breath', icon: <Wind size={28} />, title: 'Breath Bubbles', desc: 'Pop bubbles in sync with your breath. Calming, no score.', time: '2-3 min' },
+  { id: 'memory', icon: <Sprout size={28} />, title: 'Memory Garden', desc: 'Match concepts to their meanings. Learn while relaxing.', time: '3-5 min' },
+  { id: 'zen', icon: <Layers size={28} />, title: 'Zen Tiles', desc: 'Slide tiles into place. No timer, no pressure.', time: '2-5 min' },
+  { id: 'word', icon: <Type size={28} />, title: 'Word Weave', desc: 'Find words from scattered letters. Gentle and fun.', time: '3-5 min' },
 ];
 
 const postGameMessages: Record<string, string> = {
-  breath: 'Your breathing regulated. Cortisol drops after controlled breathing. You\'re ready to learn. 🌿',
-  memory: 'You just reinforced concepts while relaxing. Your brain was learning even at rest. 🌱',
-  zen: 'Puzzle solving activates the same prefrontal cortex you use for studying — gently warmed up now. 🪨',
-  word: 'Language processing is active. Good state for reading-heavy topics like theory. 📝',
+  breath: 'Your breathing regulated. Cortisol drops after controlled breathing. You\'re ready to learn.',
+  memory: 'You just reinforced concepts while relaxing. Your brain was learning even at rest.',
+  zen: 'Puzzle solving activates the same prefrontal cortex you use for studying — gently warmed up now.',
+  word: 'Language processing is active. Good state for reading-heavy topics like theory.',
 };
 
 const Games = () => {
@@ -73,7 +73,7 @@ const Games = () => {
             className="card-base text-left group cursor-pointer hover:border-accent transition-all"
             style={{ borderColor: 'hsl(var(--border))' }}
           >
-            <span className="text-3xl mb-2 block">{g.emoji}</span>
+            <span className="mb-2 block" style={{ color: 'hsl(var(--accent))' }}>{g.icon}</span>
             <h3 className="font-display text-base font-semibold mb-1" style={{ color: 'hsl(var(--text))' }}>{g.title}</h3>
             <p className="text-xs mb-2" style={{ color: 'hsl(var(--text-secondary))' }}>{g.desc}</p>
             <span className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--muted))' }}>

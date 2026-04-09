@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Loader2, Sparkles, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { BookOpen, Loader2, Sparkles, ChevronDown, ChevronUp, Trash2, Smile, Heart, Frown, AlertCircle, Cloud, HelpCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const moodOptions = [
-  { emoji: '😊', label: 'Happy' },
-  { emoji: '😌', label: 'Calm' },
-  { emoji: '😔', label: 'Sad' },
-  { emoji: '😤', label: 'Frustrated' },
-  { emoji: '😰', label: 'Anxious' },
-  { emoji: '🤔', label: 'Reflective' },
+  { icon: <Smile size={16} />, label: 'Happy' },
+  { icon: <Heart size={16} />, label: 'Calm' },
+  { icon: <Frown size={16} />, label: 'Sad' },
+  { icon: <AlertCircle size={16} />, label: 'Frustrated' },
+  { icon: <Cloud size={16} />, label: 'Anxious' },
+  { icon: <HelpCircle size={16} />, label: 'Reflective' },
 ];
 
 const journalPrompts = [
@@ -134,7 +134,7 @@ const Journal = () => {
       toast.error(error.message || 'Failed to save');
     } else {
       setEntries(prev => [data as JournalEntry, ...prev]);
-      toast.success('Entry saved 📝');
+      toast.success('Entry saved successfully');
       setContent('');
       setSelectedMood(null);
       setCurrentPrompt(null);
@@ -193,7 +193,7 @@ const Journal = () => {
                   borderColor: selectedMood === m.label ? 'hsl(var(--accent))' : 'hsl(var(--border))',
                   color: selectedMood === m.label ? 'hsl(var(--accent))' : 'hsl(var(--text))',
                 }}>
-                <span className="text-base">{m.emoji}</span> {m.label}
+                <span className="text-base">{m.icon}</span> {m.label}
               </button>
             ))}
           </div>
@@ -248,7 +248,7 @@ const Journal = () => {
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs" style={{ color: 'hsl(var(--muted))' }}>{formatDate(entry.created_at)}</span>
-                        {moodObj && <span className="text-sm" title={moodObj.label}>{moodObj.emoji}</span>}
+                        {moodObj && <span className="text-sm" title={moodObj.label} style={{ color: 'hsl(var(--accent))' }}>{moodObj.icon}</span>}
                       </div>
                       {isExpanded ? <ChevronUp size={14} style={{ color: 'hsl(var(--muted))' }} /> : <ChevronDown size={14} style={{ color: 'hsl(var(--muted))' }} />}
                     </div>
