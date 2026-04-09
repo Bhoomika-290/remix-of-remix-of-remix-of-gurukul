@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '@/contexts/AppContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Zap, HelpCircle, Loader2, Sparkles, AlertCircle, Wind, Shield, Swords, Heart } from 'lucide-react';
+import { Zap, HelpCircle, Loader2, Sparkles, AlertCircle, Wind, Shield, Swords, Heart, Trophy, Flame, Users } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Question {
