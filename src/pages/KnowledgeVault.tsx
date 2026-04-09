@@ -15,7 +15,7 @@ interface Material { id: string; title: string; type: string; url: string; sub_t
 
 const typeIcons: Record<string, any> = { pdf: FileText, video: Video, pyq: ClipboardList };
 const typeLabels: Record<string, string> = { pdf: 'PDF Notes', video: 'Video Lectures', pyq: 'PYQs' };
-const typeEmoji: Record<string, string> = { pdf: '📄', video: '🎥', pyq: '📝' };
+const typeEmoji: Record<string, React.ReactNode> = { pdf: <FileText size={14} />, video: <Video size={14} />, pyq: <ClipboardList size={14} /> };
 
 const KnowledgeVault = () => {
   const { user } = useApp();
@@ -424,7 +424,7 @@ const KnowledgeVault = () => {
           <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-md rounded-2xl border p-5 space-y-3 max-h-[90vh] overflow-y-auto"
             style={{ background: 'hsl(var(--surface))', borderColor: 'hsl(var(--border))' }}>
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold" style={{ color: 'hsl(var(--text))' }}>📤 Upload Material</h4>
+              <h4 className="text-sm font-semibold flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}><Upload size={14} style={{ color: 'hsl(var(--accent))' }} /> Upload Material</h4>
               <button onClick={() => setShowUpload(false)}><X size={16} style={{ color: 'hsl(var(--muted))' }} /></button>
             </div>
 
@@ -578,7 +578,7 @@ const KnowledgeVault = () => {
             {/* Recently Added */}
             {recentMaterials.length > 0 && (
               <div className="mt-6">
-                <h3 className="font-display text-sm font-semibold mb-3" style={{ color: 'hsl(var(--text))' }}>🕐 Recently Added</h3>
+                <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}><Clock size={14} style={{ color: 'hsl(var(--accent))' }} /> Recently Added</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {recentMaterials.map((m, i) => (
                     <motion.button key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}

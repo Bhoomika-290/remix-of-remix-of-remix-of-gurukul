@@ -97,8 +97,8 @@ const Social = () => {
           isCurrentUser: p.id === currentUserId,
         }));
 
-        // Filter out zero-XP users
-        const activeEntries = entries.filter(e => e.xp > 0);
+        // Show ALL users including 0 XP so new signups appear
+        const activeEntries = entries;
         setLeaderboard(activeEntries);
 
         const rank = activeEntries.findIndex(e => e.isCurrentUser);
