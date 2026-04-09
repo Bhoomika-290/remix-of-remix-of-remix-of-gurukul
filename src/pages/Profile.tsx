@@ -67,12 +67,12 @@ const Profile = () => {
       accuracy: Math.floor(40+Math.random()*50), timeSpent: `${Math.floor(1+Math.random()*8)}h ${Math.floor(Math.random()*59)}m`,
       topicsCompleted: Math.floor(1+Math.random()*12), streak: Math.floor(1+Math.random()*7), rank: Math.floor(1+Math.random()*20),
       topics: [
-        { name: 'Basics', quizzes: 3, accuracy: 85, mastery: 'high', lastAttempted: '2d ago', status: '✅' },
-        { name: 'Intermediate', quizzes: 5, accuracy: 62, mastery: 'medium', lastAttempted: '1d ago', status: '⚠️' },
-        { name: 'Advanced', quizzes: 2, accuracy: 40, mastery: 'low', lastAttempted: '5d ago', status: '❌' },
-        { name: 'Applications', quizzes: 1, accuracy: 55, mastery: 'medium', lastAttempted: '3d ago', status: '⚠️' },
-        { name: 'Practice Sets', quizzes: 4, accuracy: 72, mastery: 'high', lastAttempted: '1d ago', status: '✅' },
-        { name: 'Revision', quizzes: 2, accuracy: 30, mastery: 'low', lastAttempted: '7d ago', status: '❌' },
+        { name: 'Basics', quizzes: 3, accuracy: 85, mastery: 'high', lastAttempted: '2d ago', status: 'high' },
+        { name: 'Intermediate', quizzes: 5, accuracy: 62, mastery: 'medium', lastAttempted: '1d ago', status: 'medium' },
+        { name: 'Advanced', quizzes: 2, accuracy: 40, mastery: 'low', lastAttempted: '5d ago', status: 'low' },
+        { name: 'Applications', quizzes: 1, accuracy: 55, mastery: 'medium', lastAttempted: '3d ago', status: 'medium' },
+        { name: 'Practice Sets', quizzes: 4, accuracy: 72, mastery: 'high', lastAttempted: '1d ago', status: 'high' },
+        { name: 'Revision', quizzes: 2, accuracy: 30, mastery: 'low', lastAttempted: '7d ago', status: 'low' },
       ],
       strengths: ['Basics', 'Formulas', 'Theory'],
       weaknesses: ['Problem Solving', 'Applications', 'Proofs'],
@@ -134,15 +134,15 @@ const Profile = () => {
     { text: '4-7-8 Breathing', time: '2h ago', type: 'breathing' },
     { text: 'CBT Thought Reframe', time: '5h ago', type: 'cbt' },
     { text: '25min Focus Session', time: '6h ago', type: 'focus' },
-    { text: 'Mood check-in: 😊', time: 'Yesterday', type: 'mood' },
+    { text: 'Mood check-in: Good', time: 'Yesterday', type: 'mood' },
     { text: '5-4-3-2-1 Grounding', time: '2d ago', type: 'grounding' },
   ];
 
   const journalEntries = [
-    { mood: '😊', note: 'Good study session, felt productive', time: 'Today 2:30 PM', sleep: 7, anxiety: 3 },
-    { mood: '😐', note: 'Average day, a bit tired', time: 'Yesterday 9 PM', sleep: 6, anxiety: 5 },
-    { mood: '😢', note: 'Stressed about exam prep', time: '2 days ago', sleep: 5, anxiety: 7 },
-    { mood: '😊', note: 'Great score on practice test!', time: '3 days ago', sleep: 8, anxiety: 2 },
+    { mood: 'Good', moodIcon: <Smile size={12} />, note: 'Good study session, felt productive', time: 'Today 2:30 PM', sleep: 7, anxiety: 3 },
+    { mood: 'Okay', moodIcon: <Meh size={12} />, note: 'Average day, a bit tired', time: 'Yesterday 9 PM', sleep: 6, anxiety: 5 },
+    { mood: 'Bad', moodIcon: <Frown size={12} />, note: 'Stressed about exam prep', time: '2 days ago', sleep: 5, anxiety: 7 },
+    { mood: 'Good', moodIcon: <Smile size={12} />, note: 'Great score on practice test!', time: '3 days ago', sleep: 8, anxiety: 2 },
   ];
 
   const weeklyQuests = [
@@ -630,7 +630,7 @@ const Profile = () => {
             <div className="grid grid-cols-4 gap-2">
               {[
                 { label: 'Wellness', value: 72, icon: <Heart size={16}/>, color: 'hsl(var(--success))' },
-                { label: 'Mood', value: '😊 Good', icon: <Activity size={16}/>, color: 'hsl(var(--accent))' },
+                { label: 'Mood', value: 'Good', icon: <Activity size={16}/>, color: 'hsl(var(--accent))' },
                 { label: 'Streak', value: '5d', icon: <Flame size={16}/>, color: 'hsl(var(--warning))' },
                 { label: 'Burnout', value: 'Low', icon: <Shield size={16}/>, color: 'hsl(var(--success))' },
               ].map((s, i) => (
@@ -689,10 +689,10 @@ const Profile = () => {
             <div className="card-base">
               {/* Mini stats bar */}
               <div className="flex flex-wrap gap-3 mb-3 text-[10px]" style={{ color: 'hsl(var(--muted))' }}>
-                <span>📅 <strong style={{ color: 'hsl(var(--text))' }}>{calendarStats.logged}</strong> days logged</span>
-                <span>😊 Avg: <strong style={{ color: 'hsl(var(--text))' }}>{moodLevels[Math.round(calendarStats.avgMood)]?.label || 'N/A'}</strong></span>
-                <span>⭐ Best: <strong style={{ color: 'hsl(var(--text))' }}>{monthNames[calendarMonth]} {calendarStats.bestDay}</strong></span>
-                <span>🔥 Streak: <strong style={{ color: 'hsl(var(--text))' }}>{calendarStats.maxStreak}d</strong></span>
+                <span className="flex items-center gap-1"><Calendar size={10} /> <strong style={{ color: 'hsl(var(--text))' }}>{calendarStats.logged}</strong> days logged</span>
+                <span className="flex items-center gap-1"><Smile size={10} /> Avg: <strong style={{ color: 'hsl(var(--text))' }}>{moodLevels[Math.round(calendarStats.avgMood)]?.label || 'N/A'}</strong></span>
+                <span className="flex items-center gap-1"><Star size={10} /> Best: <strong style={{ color: 'hsl(var(--text))' }}>{monthNames[calendarMonth]} {calendarStats.bestDay}</strong></span>
+                <span className="flex items-center gap-1"><Flame size={10} /> Streak: <strong style={{ color: 'hsl(var(--text))' }}>{calendarStats.maxStreak}d</strong></span>
               </div>
 
               {/* Header with nav + view toggle */}
@@ -798,7 +798,7 @@ const Profile = () => {
                         <span className="text-[9px] shrink-0 ml-2" style={{ color: 'hsl(var(--muted))' }}>{j.time}</span>
                       </div>
                       <div className="flex gap-2 text-[9px] mt-0.5" style={{ color: 'hsl(var(--muted))' }}>
-                        <span>😴 {j.sleep}h</span><span>😰 {j.anxiety}/10</span>
+                        <span className="flex items-center gap-0.5"><Moon size={8} /> {j.sleep}h</span><span className="flex items-center gap-0.5"><AlertCircle size={8} /> {j.anxiety}/10</span>
                       </div>
                     </div>
                   ))}
@@ -854,7 +854,7 @@ const Profile = () => {
                 </h3>
                 <div className="grid grid-cols-3 gap-1.5">
                   {[
-                    { l: 'Mood', v: '😊 3.8' }, { l: 'Focus', v: '4h 20m' }, { l: 'Activities', v: '12' },
+                    { l: 'Mood', v: '3.8' }, { l: 'Focus', v: '4h 20m' }, { l: 'Activities', v: '12' },
                     { l: 'Badges', v: '2 new' }, { l: 'vs Last', v: '+15%' }, { l: 'Habit %', v: '72%' },
                   ].map((s, i) => (
                     <div key={i} className="text-center p-1 rounded-lg" style={{ background: 'hsl(var(--surface2))' }}>
@@ -882,7 +882,7 @@ const Profile = () => {
             { l: 'Top', v: '15%', c: 'hsl(var(--warning))' },
             { l: 'Cards', v: '47', c: 'hsl(var(--accent))' },
             { l: 'Retain', v: '78%', c: 'hsl(var(--success))' },
-            { l: 'Mood', v: '😊', c: 'hsl(var(--accent))' },
+            { l: 'Mood', v: 'Good', c: 'hsl(var(--accent))' },
           ].map((s, i) => (
             <div key={i} className="text-center">
               <p className="stat-number text-xs font-bold" style={{ color: s.c }}>{s.v}</p>
