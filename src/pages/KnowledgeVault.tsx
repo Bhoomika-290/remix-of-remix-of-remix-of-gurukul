@@ -58,10 +58,12 @@ const KnowledgeVault = () => {
   const [uploadSubjects, setUploadSubjects] = useState<Subject[]>([]);
   const [uploadTopics, setUploadTopics] = useState<Topic[]>([]);
   const [uploadSubTopics, setUploadSubTopics] = useState<SubTopic[]>([]);
-
-  // All topics/subtopics for mapping
-  const [allTopics, setAllTopics] = useState<Topic[]>([]);
-  const [allSubTopics, setAllSubTopics] = useState<SubTopic[]>([]);
+  const [newTopicName, setNewTopicName] = useState('');
+  const [newSubTopicName, setNewSubTopicName] = useState('');
+  const [creatingTopic, setCreatingTopic] = useState(false);
+  const [creatingSubTopic, setCreatingSubTopic] = useState(false);
+  const [newSubjectName, setNewSubjectName] = useState('');
+  const [creatingSubject, setCreatingSubject] = useState(false);
 
   const userStreamName = useMemo(() => {
     const map: Record<string, string> = {
@@ -437,36 +439,81 @@ const KnowledgeVault = () => {
               </select>
             </div>
 
-            {/* Subject selector */}
+            {/* Subject selector with create new */}
             {uploadStreamId && (
               <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted))' }}>Subject</label>
-                <select value={uploadSubjectId || ''} onChange={e => handleUploadSubjectChange(e.target.value)} className={selectClass} style={selectStyle}>
-                  <option value="">Select subject...</option>
-                  {uploadSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
+                <label className="text-xs font-medium mb-1 flex items-center justify-between" style={{ color: 'hsl(var(--muted))' }}>
+                  Subject
+                  <button type="button" onClick={() => setCreatingSubject(!creatingSubject)} className="text-[10px] flex items-center gap-0.5" style={{ color: 'hsl(var(--accent))' }}><Plus size={10} /> New</button>
+                </label>
+                {creatingSubject ? (
+                  <div className="flex gap-2">
+                    <input value={newSubjectName} onChange={e => setNewSubjectName(e.target.value)} placeholder="New subject name" className="flex-1 px-3 py-2 rounded-lg border text-sm outline-none" style={{ background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--text))' }} />
+                    <button onClick={async () => {
+                      if (!newSubjectName.trim()) return;
+                      const { data, error } = await supabase.from('subjects').insert({ name: newSubjectName.trim(), stream_id: uploadStreamId }).select().single();
+                      if (data) { setUploadSubjects(prev => [...prev, data as Subject]); setUploadSubjectId(data.id); setNewSubjectName(''); setCreatingSubject(false); }
+                      if (error) toast.error(error.message);
+                    }} className="px-3 py-2 rounded-lg text-xs font-medium" style={{ background: 'hsl(var(--accent))', color: 'hsl(var(--primary-foreground))' }}>Add</button>
+                  </div>
+                ) : (
+                  <select value={uploadSubjectId || ''} onChange={e => handleUploadSubjectChange(e.target.value)} className={selectClass} style={selectStyle}>
+                    <option value="">Select subject...</option>
+                    {uploadSubjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                )}
               </div>
             )}
 
-            {/* Topic selector */}
+            {/* Topic selector with create new */}
             {uploadSubjectId && (
               <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted))' }}>Topic</label>
-                <select value={uploadTopicId || ''} onChange={e => handleUploadTopicChange(e.target.value)} className={selectClass} style={selectStyle}>
-                  <option value="">Select topic...</option>
-                  {uploadTopics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </select>
+                <label className="text-xs font-medium mb-1 flex items-center justify-between" style={{ color: 'hsl(var(--muted))' }}>
+                  Topic
+                  <button type="button" onClick={() => setCreatingTopic(!creatingTopic)} className="text-[10px] flex items-center gap-0.5" style={{ color: 'hsl(var(--accent))' }}><Plus size={10} /> New</button>
+                </label>
+                {creatingTopic ? (
+                  <div className="flex gap-2">
+                    <input value={newTopicName} onChange={e => setNewTopicName(e.target.value)} placeholder="New topic name" className="flex-1 px-3 py-2 rounded-lg border text-sm outline-none" style={{ background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--text))' }} />
+                    <button onClick={async () => {
+                      if (!newTopicName.trim()) return;
+                      const { data, error } = await supabase.from('topics').insert({ name: newTopicName.trim(), subject_id: uploadSubjectId }).select().single();
+                      if (data) { setUploadTopics(prev => [...prev, data as Topic]); setUploadTopicId(data.id); setNewTopicName(''); setCreatingTopic(false); }
+                      if (error) toast.error(error.message);
+                    }} className="px-3 py-2 rounded-lg text-xs font-medium" style={{ background: 'hsl(var(--accent))', color: 'hsl(var(--primary-foreground))' }}>Add</button>
+                  </div>
+                ) : (
+                  <select value={uploadTopicId || ''} onChange={e => handleUploadTopicChange(e.target.value)} className={selectClass} style={selectStyle}>
+                    <option value="">Select or type topic...</option>
+                    {uploadTopics.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                )}
               </div>
             )}
 
-            {/* Sub-topic selector */}
+            {/* Sub-topic selector with create new */}
             {uploadTopicId && (
               <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: 'hsl(var(--muted))' }}>Sub-topic</label>
-                <select value={uploadSubTopicId || ''} onChange={e => setUploadSubTopicId(e.target.value)} className={selectClass} style={selectStyle}>
-                  <option value="">Select sub-topic...</option>
-                  {uploadSubTopics.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
-                </select>
+                <label className="text-xs font-medium mb-1 flex items-center justify-between" style={{ color: 'hsl(var(--muted))' }}>
+                  Sub-topic
+                  <button type="button" onClick={() => setCreatingSubTopic(!creatingSubTopic)} className="text-[10px] flex items-center gap-0.5" style={{ color: 'hsl(var(--accent))' }}><Plus size={10} /> New</button>
+                </label>
+                {creatingSubTopic ? (
+                  <div className="flex gap-2">
+                    <input value={newSubTopicName} onChange={e => setNewSubTopicName(e.target.value)} placeholder="New sub-topic name" className="flex-1 px-3 py-2 rounded-lg border text-sm outline-none" style={{ background: 'hsl(var(--surface2))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--text))' }} />
+                    <button onClick={async () => {
+                      if (!newSubTopicName.trim()) return;
+                      const { data, error } = await supabase.from('sub_topics').insert({ name: newSubTopicName.trim(), topic_id: uploadTopicId }).select().single();
+                      if (data) { setUploadSubTopics(prev => [...prev, data as SubTopic]); setUploadSubTopicId(data.id); setNewSubTopicName(''); setCreatingSubTopic(false); }
+                      if (error) toast.error(error.message);
+                    }} className="px-3 py-2 rounded-lg text-xs font-medium" style={{ background: 'hsl(var(--accent))', color: 'hsl(var(--primary-foreground))' }}>Add</button>
+                  </div>
+                ) : (
+                  <select value={uploadSubTopicId || ''} onChange={e => setUploadSubTopicId(e.target.value)} className={selectClass} style={selectStyle}>
+                    <option value="">Select sub-topic...</option>
+                    {uploadSubTopics.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+                  </select>
+                )}
               </div>
             )}
 
@@ -490,7 +537,7 @@ const KnowledgeVault = () => {
             <button onClick={() => fileInputRef.current?.click()}
               className="w-full py-3 rounded-xl border-2 border-dashed text-sm transition-all hover:border-accent"
               style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted))' }}>
-              {uploadFile ? `📎 ${uploadFile.name}` : 'Click to upload a file'}
+              {uploadFile ? uploadFile.name : 'Click to upload a file'}
             </button>
             <button onClick={handleUpload} disabled={uploading || !uploadTitle.trim() || !uploadSubTopicId}
               className="btn-3d w-full py-2.5 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-40">
