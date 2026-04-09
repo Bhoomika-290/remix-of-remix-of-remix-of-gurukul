@@ -607,9 +607,9 @@ const KnowledgeVault = () => {
                         <p className="text-[10px] truncate" style={{ color: 'hsl(var(--muted))' }}>{sub.description}</p>
                         {counts && (
                           <div className="flex gap-2 mt-1">
-                            {counts.pdf > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(var(--danger) / 0.1)', color: 'hsl(var(--danger))' }}>📄 {counts.pdf}</span>}
-                            {counts.video > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}>🎥 {counts.video}</span>}
-                            {counts.pyq > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'hsl(var(--warning) / 0.1)', color: 'hsl(var(--warning))' }}>📝 {counts.pyq}</span>}
+                            {counts.pdf > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5" style={{ background: 'hsl(var(--danger) / 0.1)', color: 'hsl(var(--danger))' }}><FileText size={9} /> {counts.pdf}</span>}
+                            {counts.video > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5" style={{ background: 'hsl(var(--accent-soft))', color: 'hsl(var(--accent))' }}><Video size={9} /> {counts.video}</span>}
+                            {counts.pyq > 0 && <span className="text-[9px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5" style={{ background: 'hsl(var(--warning) / 0.1)', color: 'hsl(var(--warning))' }}><ClipboardList size={9} /> {counts.pyq}</span>}
                           </div>
                         )}
                       </div>
@@ -695,8 +695,8 @@ const KnowledgeVault = () => {
                     <p className="text-sm font-semibold" style={{ color: 'hsl(var(--text))' }}>{st.name}</p>
                     <p className="text-[10px] mt-1" style={{ color: 'hsl(var(--muted))' }}>{st.description}</p>
                     <div className="flex gap-2 mt-2">
-                      {['📄', '🎥', '📝'].map((e, j) => (
-                        <span key={j} className="text-xs">{e}</span>
+                      {[<FileText size={10} />, <Video size={10} />, <ClipboardList size={10} />].map((icon, j) => (
+                        <span key={j} className="text-xs" style={{ color: 'hsl(var(--muted))' }}>{icon}</span>
                       ))}
                     </div>
                   </motion.button>
