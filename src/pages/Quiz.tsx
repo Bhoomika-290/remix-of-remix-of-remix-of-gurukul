@@ -109,16 +109,21 @@ const Quiz = () => {
     if (state?.subject && state?.subtopic && !quizStarted && questions.length === 0) fetchQuiz();
   }, [state, quizStarted, questions.length, fetchQuiz]);
 
-  // Adaptive difficulty
+  // Adaptive difficulty & boss trigger after 3 consecutive correct
   useEffect(() => {
     if (correctStreak >= 3 && difficulty !== 'hard') {
       setDifficulty(prev => prev === 'easy' ? 'medium' : 'hard');
-      setEncouragement('🔥 You\'re on fire! Difficulty increased.');
+      setEncouragement('Difficulty increased — you\'re on fire!');
       setTimeout(() => setEncouragement(null), 3000);
+    }
+    // Boss battle after 3 consecutive correct answers
+    if (correctStreak >= 3 && !showBoss && !recoveryMode && quizStarted) {
       setCorrectStreak(0);
+      setTimeout(() => triggerBoss(), 1000);
     }
   }, [correctStreak]);
 
+  // Brain fog after 3 consecutive wrong answers
   useEffect(() => {
     if (wrongStreak >= 3 && !brainFog) setBrainFog(true);
   }, [wrongStreak]);
@@ -173,10 +178,7 @@ const Quiz = () => {
       if (q.concept && !weakConcepts.includes(q.concept)) setWeakConcepts(prev => [...prev, q.concept]);
     }
 
-    // Boss trigger: every 5 questions with streak >= 2
-    if ((currentQ + 1) % 5 === 0 && correctStreak >= 2 && isCorrect && !recoveryMode) {
-      setTimeout(() => triggerBoss(), 1500);
-    }
+    // Boss trigger is now handled by the correctStreak useEffect above
   };
 
   const triggerBoss = async () => {
@@ -256,7 +258,7 @@ const Quiz = () => {
     setAnswered(true);
     setSelected(-1);
     if (q.concept && !weakConcepts.includes(q.concept)) setWeakConcepts(prev => [...prev, q.concept]);
-    setEncouragement(`🤝 ${Math.floor(Math.random() * 40) + 10} students also got stuck on this. You're not alone.`);
+    setEncouragement(`${Math.floor(Math.random() * 40) + 10} students also got stuck on this. You're not alone.`);
     setTimeout(() => setEncouragement(null), 4000);
   };
 
