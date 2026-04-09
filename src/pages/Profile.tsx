@@ -37,6 +37,54 @@ const moodLevels = [
   { label: 'Great', color: 'hsl(150 50% 38%)', icon: <Heart size={12} /> },
 ];
 
+// Leaderboard component for Profile
+const ProfileLeaderboard = ({ user, navigate }: { user: any; navigate: any }) => {
+  const [lb, setLb] = useState<{ name: string; xp: number; isCurrentUser: boolean }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data: profiles } = await supabase.from('profiles').select('id, name, xp').order('xp', { ascending: false }).limit(10);
+      if (profiles) {
+        setLb(profiles.map(p => ({
+          name: p.name || 'Student', xp: p.xp || 0, isCurrentUser: p.id === session?.user?.id,
+        })));
+      }
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  return (
+    <div className="card-base">
+      <h3 className="font-display text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}>
+        <Trophy size={14} style={{ color: 'hsl(var(--warning))' }} /> Leaderboard
+      </h3>
+      {loading ? (
+        <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin" style={{ color: 'hsl(var(--accent))' }} /></div>
+      ) : lb.length === 0 ? (
+        <p className="text-[10px] text-center py-3" style={{ color: 'hsl(var(--muted))' }}>No rankings yet</p>
+      ) : (
+        <>
+          {lb.slice(0, 5).map((p, i) => (
+            <div key={i} className="flex items-center gap-2 py-1.5 text-[11px]" style={{
+              borderLeft: p.isCurrentUser ? '2px solid hsl(var(--accent))' : '2px solid transparent', paddingLeft: '6px',
+            }}>
+              <span className="w-4 stat-number text-[10px]" style={{ color: i < 3 ? 'hsl(var(--warning))' : 'hsl(var(--muted))' }}>
+                {i === 0 ? <Trophy size={10} /> : `#${i + 1}`}
+              </span>
+              <span className="flex-1 truncate" style={{ color: 'hsl(var(--text))' }}>{p.isCurrentUser ? `${p.name} (You)` : p.name}</span>
+              <span className="stat-number text-[10px]" style={{ color: 'hsl(var(--accent))' }}>{p.xp} XP</span>
+            </div>
+          ))}
+          <button onClick={() => navigate('/social')} className="btn-3d-ghost w-full text-[10px] py-1.5 mt-2">View Full Rankings</button>
+        </>
+      )}
+    </div>
+  );
+};
+
 const Profile = () => {
   const { user, setUser } = useApp();
   const { recoveryMode } = useTheme();
@@ -416,16 +464,8 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Leaderboard - see Social page */}
-            {!recoveryMode && (
-              <div className="card-base">
-                <h3 className="font-display text-xs font-semibold mb-2 flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}>
-                  <Trophy size={14} style={{ color: 'hsl(var(--warning))' }} /> Leaderboard
-                </h3>
-                <p className="text-[10px] mb-2" style={{ color: 'hsl(var(--muted))' }}>Based on XP earned</p>
-                <button onClick={() => navigate('/social')} className="btn-3d-ghost w-full text-xs py-2">View Full Rankings</button>
-              </div>
-            )}
+            {/* Leaderboard */}
+            {!recoveryMode && <ProfileLeaderboard user={user} navigate={navigate} />}
           </motion.div>
         )}
 
@@ -794,7 +834,7 @@ const Profile = () => {
                   {journalEntries.map((j, i) => (
                     <div key={i} className="p-2 rounded-xl" style={{ background: 'hsl(var(--surface2))' }}>
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px]">{j.mood} <span className="font-medium" style={{ color: 'hsl(var(--text))' }}>{j.note}</span></span>
+                        <span className="text-[10px] flex items-center gap-1">{j.moodIcon} <span className="font-medium" style={{ color: 'hsl(var(--text))' }}>{j.note}</span></span>
                         <span className="text-[9px] shrink-0 ml-2" style={{ color: 'hsl(var(--muted))' }}>{j.time}</span>
                       </div>
                       <div className="flex gap-2 text-[9px] mt-0.5" style={{ color: 'hsl(var(--muted))' }}>
