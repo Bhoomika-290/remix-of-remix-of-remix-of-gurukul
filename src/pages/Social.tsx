@@ -4,7 +4,7 @@ import { useApp } from '@/contexts/AppContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Timer, Users, ArrowLeft, Search, Plus, Trophy, Clock, Zap, Heart, AlertCircle, TrendingUp, Loader2 } from 'lucide-react';
+import { Timer, Users, ArrowLeft, Search, Plus, Trophy, Clock, Zap, Heart, AlertCircle, TrendingUp, Loader2, Flame } from 'lucide-react';
 
 interface LeaderboardEntry {
   name: string;
