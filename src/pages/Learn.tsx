@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Loader2, Sparkles, ArrowRight, BookOpen, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Loader2, Sparkles, ArrowRight, BookOpen, AlertTriangle, Target, PenLine, MessageCircle, Mic, ClipboardCheck, Brain, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useApp } from '@/contexts/AppContext';
 import { useNavigate } from 'react-router-dom';
@@ -338,7 +338,7 @@ const Learn = () => {
             <motion.div key={currentStep} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="card-base">
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'hsl(var(--surface2))', color: 'hsl(var(--muted))' }}>
-                  {step.type === 'hook' ? '🎯 Hook' : step.type === 'fillblank' ? '✏️ Fill in' : step.type === 'choice' ? '💭 Think deeper' : step.type === 'teachback' ? '🗣️ Teach back' : '✅ Summary'}
+                  <span className="inline-flex items-center gap-1">{step.type === 'hook' ? <><Target size={10} /> Hook</> : step.type === 'fillblank' ? <><PenLine size={10} /> Fill in</> : step.type === 'choice' ? <><MessageCircle size={10} /> Think deeper</> : step.type === 'teachback' ? <><Mic size={10} /> Teach back</> : <><ClipboardCheck size={10} /> Summary</>}</span>
                 </span>
                 <span className="text-xs" style={{ color: 'hsl(var(--muted))' }}>Step {currentStep + 1}/{steps.length}</span>
               </div>
@@ -387,7 +387,7 @@ const Learn = () => {
                 <div className="space-y-3 mt-4">
                   {step.explanation && (
                     <div className="p-4 rounded-xl mb-3" style={{ background: 'hsl(var(--accent-soft))' }}>
-                      <p className="text-xs font-medium mb-1" style={{ color: 'hsl(var(--accent))' }}>📋 Concept Summary</p>
+                      <p className="text-xs font-medium mb-1 flex items-center gap-1" style={{ color: 'hsl(var(--accent))' }}><ClipboardCheck size={12} /> Concept Summary</p>
                       <p className="font-display text-sm" style={{ color: 'hsl(var(--text))' }}>{step.explanation}</p>
                     </div>
                   )}
@@ -439,7 +439,7 @@ const Learn = () => {
         {/* Concept Map sidebar */}
         <div className="hidden lg:block w-64">
           <div className="card-base">
-            <h4 className="font-display text-sm font-semibold mb-3" style={{ color: 'hsl(var(--text))' }}>🧠 Concept Map</h4>
+            <h4 className="font-display text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}><Brain size={14} style={{ color: 'hsl(var(--accent))' }} /> Concept Map</h4>
             {concepts.length > 0 ? concepts.map((c, i) => (
               <div key={i} className="flex items-center gap-2 py-2 text-sm">
                 <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px]" style={{
@@ -454,7 +454,7 @@ const Learn = () => {
           </div>
 
           <div className="card-base mt-4 text-center">
-            <span className="text-2xl">⚡</span>
+            <Zap size={24} style={{ color: 'hsl(var(--accent))' }} />
             <p className="stat-number text-lg font-bold mt-1" style={{ color: 'hsl(var(--accent))' }}>{user.xp} XP</p>
             <p className="text-xs" style={{ color: 'hsl(var(--muted))' }}>Keep learning to level up</p>
           </div>
@@ -463,7 +463,7 @@ const Learn = () => {
 
       <div className="lg:hidden mt-4">
         <div className="card-base">
-          <h4 className="font-display text-sm font-semibold mb-3" style={{ color: 'hsl(var(--text))' }}>🧠 Concept Map</h4>
+          <h4 className="font-display text-sm font-semibold mb-3 flex items-center gap-1.5" style={{ color: 'hsl(var(--text))' }}><Brain size={14} style={{ color: 'hsl(var(--accent))' }} /> Concept Map</h4>
           {concepts.length > 0 ? concepts.map((c, i) => (
             <div key={i} className="flex items-center gap-2 py-2 text-sm">
               <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px]" style={{
