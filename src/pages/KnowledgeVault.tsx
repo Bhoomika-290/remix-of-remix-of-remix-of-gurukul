@@ -65,6 +65,10 @@ const KnowledgeVault = () => {
   const [newSubjectName, setNewSubjectName] = useState('');
   const [creatingSubject, setCreatingSubject] = useState(false);
 
+  // All topics/subtopics for mapping
+  const [allTopics, setAllTopics] = useState<Topic[]>([]);
+  const [allSubTopics, setAllSubTopics] = useState<SubTopic[]>([]);
+
   const userStreamName = useMemo(() => {
     const map: Record<string, string> = {
       jee: 'Science PCM', neet: 'Science PCB', boards: 'Science PCM',
