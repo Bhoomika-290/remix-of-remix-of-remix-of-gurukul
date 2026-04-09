@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Loader2, Sparkles, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { BookOpen, Loader2, Sparkles, ChevronDown, ChevronUp, Trash2, Smile, Heart, Frown, AlertCircle, Cloud, HelpCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const moodOptions = [
-  { emoji: '😊', label: 'Happy' },
-  { emoji: '😌', label: 'Calm' },
-  { emoji: '😔', label: 'Sad' },
-  { emoji: '😤', label: 'Frustrated' },
-  { emoji: '😰', label: 'Anxious' },
-  { emoji: '🤔', label: 'Reflective' },
+  { icon: <Smile size={16} />, label: 'Happy' },
+  { icon: <Heart size={16} />, label: 'Calm' },
+  { icon: <Frown size={16} />, label: 'Sad' },
+  { icon: <AlertCircle size={16} />, label: 'Frustrated' },
+  { icon: <Cloud size={16} />, label: 'Anxious' },
+  { icon: <HelpCircle size={16} />, label: 'Reflective' },
 ];
 
 const journalPrompts = [
